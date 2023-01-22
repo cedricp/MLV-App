@@ -625,7 +625,11 @@ void MainWindow::importNewMlv(QString fileName)
         addFileToSession( fileName );
 
         //Open MLV
-        if( !openMlvForPreview( fileName ) )
+        int ret;
+        if( ui->actionFastOpen->isChecked() ) ret = openMlvForPreview( fileName );
+        else ret = openMlv( fileName );
+
+        if( !ret )
         {
             //Save last file name
             m_lastMlvOpenFileName = fileName;
@@ -1008,6 +1012,7 @@ int MainWindow::openMlv( QString fileName )
     //If clip loaded, enable session save
     ui->actionSaveSession->setEnabled( true );
     ui->actionSaveAsSession->setEnabled( true );
+    ui->actionSaveSessionMetadata->setEnabled( true );
     //Enable select all clips action
     ui->actionSelectAllClips->setEnabled( true );
 
@@ -1212,6 +1217,7 @@ void MainWindow::initGui( void )
     //If no clip loaded, disable session save
     ui->actionSaveSession->setEnabled( false );
     ui->actionSaveAsSession->setEnabled( false );
+    ui->actionSaveSessionMetadata->setEnabled( false );
     //Set tooltips
     ui->toolButtonCutIn->setToolTip( tr( "Set Cut In    %1" ).arg( ui->toolButtonCutIn->shortcut().toString() ) );
     ui->toolButtonCutOut->setToolTip( tr( "Set Cut Out    %1" ).arg( ui->toolButtonCutOut->shortcut().toString() ) );
@@ -1505,6 +1511,7 @@ void MainWindow::readSettings()
     if( set.value( "dragFrameMode", true ).toBool() ) ui->actionDropFrameMode->setChecked( true );
     if( set.value( "audioOutput", true ).toBool() ) ui->actionAudioOutput->setChecked( true );
     if( set.value( "zebras", false ).toBool() ) ui->actionShowZebras->setChecked( true );
+    ui->actionFastOpen->setChecked( set.value( "fastOpen", true ).toBool() );
     m_lastExportPath = set.value( "lastExportPath", QDir::homePath() ).toString();
     m_lastMlvOpenFileName = set.value( "lastMlvFileName", QDir::homePath() ).toString();
     m_lastSessionFileName = set.value( "lastSessionFileName", QDir::homePath() ).toString();
@@ -1600,6 +1607,7 @@ void MainWindow::writeSettings()
     set.setValue( "dragFrameMode", ui->actionDropFrameMode->isChecked() );
     set.setValue( "audioOutput", ui->actionAudioOutput->isChecked() );
     set.setValue( "zebras", ui->actionShowZebras->isChecked() );
+    set.setValue( "fastOpen", ui->actionFastOpen->isChecked() );
     set.setValue( "lastExportPath", m_lastExportPath );
     set.setValue( "lastMlvFileName", m_lastMlvOpenFileName );
     set.setValue( "lastSessionFileName", m_lastSessionFileName );
@@ -3303,7 +3311,8 @@ void MainWindow::openSession(QString fileNameSession)
                         //Add file to Sessionlist
                         addFileToSession( fileName );
                         //Open the file
-                        openMlvForPreview( fileName );
+                        if( ui->actionFastOpen->isChecked() ) openMlvForPreview( fileName );
+                        else openMlv( fileName );
                         SESSION_LAST_CLIP->setFileName( fileName );
                         SESSION_LAST_CLIP->setMark( mark );
 
@@ -4267,6 +4276,7 @@ void MainWindow::deleteSession()
     //If no clip loaded, disable session save
     ui->actionSaveSession->setEnabled( false );
     ui->actionSaveAsSession->setEnabled( false );
+    ui->actionSaveSessionMetadata->setEnabled( false );
     //Disable select all and delete clip actions
     ui->actionSelectAllClips->setEnabled( false );
     ui->actionDeleteSelectedClips->setEnabled( false );
@@ -10626,3 +10636,23 @@ void MainWindow::on_actionViewerBackgroundColor_triggered()
     delete dialog;
 }
 
+//Export a csv table of session clips metadata
+void MainWindow::on_actionSaveSessionMetadata_triggered()
+{
+    //Stop playback if active
+    ui->actionPlay->setChecked( false );
+
+    QString path = QFileInfo( m_lastSessionFileName ).absolutePath();
+    QString fileName = QFileDialog::getSaveFileName(this,
+                                           tr("Save MLV App Session Metadata"), path,
+                                           tr("CSV (*.csv)"));
+
+    //Abort selected
+    if( fileName.size() == 0 ) return;
+
+    //Add ending, if it got lost using some OS...
+    if( !fileName.endsWith( ".csv" ) ) fileName.append( ".csv" );
+
+    //Write file
+    m_pModel->writeMetadataToCsv( fileName );
+}
