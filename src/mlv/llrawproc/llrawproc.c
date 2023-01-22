@@ -323,12 +323,19 @@ void applyLLRawProcObject(mlvObject_t * video, uint16_t * raw_image_buff, size_t
         }
         else if (video->llrawproc->dual_iso == 2) // Preview mode
         {
-            diso_get_preview(raw_image_buff,
-                             raw_info.width,
-                             raw_info.height,
-                             raw_info.black_level,
-                             raw_info.white_level,
-                             0); // dual iso check mode is off
+//            diso_get_preview(raw_image_buff,
+//                             raw_info.width,
+//                             raw_info.height,
+//                             raw_info.black_level,
+//                             raw_info.white_level,
+//                             0); // dual iso check mode is off
+
+            diso_get_full20bit(raw_info,
+                               raw_image_buff,
+                               video->llrawproc->diso_averaging,
+                               video->llrawproc->diso_alias_map,
+                               video->llrawproc->diso_frblending,
+                               video->llrawproc->chroma_smooth);
         }
     }
 

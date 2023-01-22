@@ -127,6 +127,12 @@ linux-g++*{
 
 ##############
 SOURCES += \
+    ../../src/mlv/llrawproc/amaze-port.c \
+    ../../src/mlv/llrawproc/amaze_demosaic_RT.c \
+    ../../src/mlv/llrawproc/dither.c \
+    ../../src/mlv/llrawproc/kelvin.c \
+    ../../src/mlv/llrawproc/sleefsseavx.c \
+    ../../src/mlv/llrawproc/timing.c \
     ClipInformation.cpp \
     RenameDialog.cpp \
     SessionModel.cpp \
@@ -241,6 +247,11 @@ HEADERS += MainWindow.h \
     ../../src/debayer/basic.h \
     ../../src/ca_correct/CA_correct_RT.h \
     ../../src/matrix/matrix.h \
+    ../../src/mlv/llrawproc/dither.h \
+    ../../src/mlv/llrawproc/kelvin.h \
+    ../../src/mlv/llrawproc/qsort.h \
+    ../../src/mlv/llrawproc/sleefsseavx.h \
+    ../../src/mlv/llrawproc/timing.h \
     ../../src/mlv/mlv.h \
     ../../src/mlv/mlv_object.h \
     ../../src/mlv/raw.h \

@@ -39,8 +39,8 @@ static inline int kth_smallest_int(int a[], int n, int k)
         exit(1);
     }
 
-     int i,j,l,m ;
-     int x ;
+    register int i,j,l,m ;
+    register int x ;
 
     l=0 ; m=n-1 ;
     while (l<m) {
@@ -61,11 +61,11 @@ static inline int kth_smallest_int(int a[], int n, int k)
     return a[k] ;
 }
 
-
-static inline unsigned short kth_smallest_short(unsigned short a[], int n, int k)
+/*
+static inline unsigned short kth_smallest_ushort(unsigned short a[], int n, int k)
 {
-     int i,j,l,m ;
-     unsigned short x ;
+    register int i,j,l,m ;
+    register unsigned short x ;
 
     l=0 ; m=n-1 ;
     while (l<m) {
@@ -85,9 +85,9 @@ static inline unsigned short kth_smallest_short(unsigned short a[], int n, int k
     }
     return a[k] ;
 }
-
+*/
 
 #define median_int_wirth(a,n) kth_smallest_int(a,n,(((n)&1)?((n)/2):(((n)/2)-1)))
-
-#define median_short_wirth(a,n) kth_smallest_short(a,n,(((n)&1)?((n)/2):(((n)/2)-1)))
-
+/*
+#define median_ushort_wirth(a,n) kth_smallest_ushort(a,n,(((n)&1)?((n)/2):(((n)/2)-1)))
+*/
