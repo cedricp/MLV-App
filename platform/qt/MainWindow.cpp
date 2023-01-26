@@ -1201,9 +1201,9 @@ void MainWindow::initGui( void )
     //Disable caching by default to avoid crashes
     //ui->actionCaching->setVisible( false );
     //Hide deflicker target - no one knows what it does...
-    ui->spinBoxDeflickerTarget->setVisible( false );
-    ui->DeflickerTargetLabel->setVisible( false );
-    ui->line_11->setVisible( false );
+//    ui->spinBoxDeflickerTarget->setVisible( false );
+//    ui->DeflickerTargetLabel->setVisible( false );
+//    ui->line_11->setVisible( false );
     //Disable unused (for now) actions
     ui->actionPasteReceipt->setEnabled( false );
     //Disable export until file opened!
@@ -1242,10 +1242,10 @@ void MainWindow::initGui( void )
     ui->horizontalSliderFilterStrength->setEnabled( false );
 
     //Hide DualIso Fullres Blending (only brings black frame if off)
-    ui->DualISOFullresBlendingLabel->setVisible( false );
-    ui->toolButtonDualIsoFullresBlending->setVisible( false );
-    ui->toolButtonDualIsoFullresBlendingOff->setVisible( false );
-    ui->toolButtonDualIsoFullresBlendingOn->setVisible( false );
+//    ui->DualISOFullresBlendingLabel->setVisible( false );
+//    ui->toolButtonDualIsoFullresBlending->setVisible( false );
+//    ui->toolButtonDualIsoFullresBlendingOff->setVisible( false );
+//    ui->toolButtonDualIsoFullresBlendingOn->setVisible( false );
 
     //Set up image in GUI
     QImage image(":/IMG/IMG/histogram.png");
@@ -5446,10 +5446,34 @@ void MainWindow::setToolButtonDualIsoFullresBlending(int index)
         break;
     case 1: ui->toolButtonDualIsoFullresBlendingOn->setChecked( true );
         break;
+    case 2: ui->toolButtonDualIsoFullresBlendingSemi->setChecked( true );
+        break;
     default: break;
     }
     if( actualize ) toolButtonDualIsoFullresBlendingChanged();
 }
+
+void MainWindow::setCheckBoxDualIsoHStripesFix(int val)
+{
+    bool actualize = true;
+
+    switch( val )
+    {
+    case 0: ui->checkBoxDualIsoHStripesFix->setChecked( false );
+        break;
+    case 1: ui->checkBoxDualIsoHStripesFix->setChecked( true );
+        break;
+    default: break;
+    }
+    if( actualize ) toolButtonDualIsoFullresBlendingChanged();
+}
+
+//TODO: Use slots like the other dual iso tools
+void MainWindow::on_checkBoxDualIsoHStripesFix_stateChanged(int arg1)
+{
+    this->checkBoxDualIsoHStripesFixChanged();
+}
+
 
 //Set Toolbuttons Darkframe Subtraction On/Off
 void MainWindow::setToolButtonDarkFrameSubtraction(int index)
@@ -5598,8 +5622,18 @@ int MainWindow::toolButtonDualIsoAliasMapCurrentIndex()
 int MainWindow::toolButtonDualIsoFullresBlendingCurrentIndex()
 {
     if( ui->toolButtonDualIsoFullresBlendingOff->isChecked() ) return 0;
+    else if( ui->toolButtonDualIsoFullresBlendingSemi->isChecked() ) return 2;
     else return 1;
 }
+
+//Get toolbutton index of dual iso fullres blending
+int MainWindow::checkBoxDualIsoHStripesFixCurrentValue()
+{
+    int c = ui->checkBoxDualIsoHStripesFix->isChecked();
+    if( ui->checkBoxDualIsoHStripesFix->isChecked() ) return 1;
+    else return 0;
+}
+
 
 //Get toolbutton index of Darkframe Subtraction On/Off
 int MainWindow::toolButtonDarkFrameSubtractionCurrentIndex()
@@ -8449,17 +8483,21 @@ void MainWindow::toolButtonDualIsoChanged( void )
     //In preview mode, the other dualIso options are grayed out
     if( ( toolButtonDualIsoCurrentIndex() == 1 ) && ui->checkBoxRawFixEnable->isChecked() )
     {
+        ui->DualISOFullresBlendingLabel->setEnabled( true );
         ui->toolButtonDualIsoInterpolation->setEnabled( true );
         ui->toolButtonDualIsoAliasMap->setEnabled( true );
         ui->toolButtonDualIsoFullresBlending->setEnabled( true );
+        ui->checkBoxDualIsoHStripesFix->setEnabled( true );
         ui->DualISOInterpolationLabel->setEnabled( true );
         ui->DualISOAliasMapLabel->setEnabled( true );
     }
     else
     {
+        ui->DualISOFullresBlendingLabel->setEnabled( false );
         ui->toolButtonDualIsoInterpolation->setEnabled( false );
         ui->toolButtonDualIsoAliasMap->setEnabled( false );
         ui->toolButtonDualIsoFullresBlending->setEnabled( false );
+        ui->checkBoxDualIsoHStripesFix->setEnabled( true );
         ui->DualISOInterpolationLabel->setEnabled( false );
         ui->DualISOAliasMapLabel->setEnabled( false );
     }
@@ -8497,6 +8535,16 @@ void MainWindow::toolButtonDualIsoAliasMapChanged( void )
 void MainWindow::toolButtonDualIsoFullresBlendingChanged( void )
 {
     llrpSetDualIsoFullResBlendingMode( m_pMlvObject, toolButtonDualIsoFullresBlendingCurrentIndex() );
+    resetMlvCache( m_pMlvObject );
+    resetMlvCachedFrame( m_pMlvObject );
+    m_frameChanged = true;
+}
+
+//DualISO Horizontal Vertical Stripes changed
+void MainWindow::checkBoxDualIsoHStripesFixChanged( void )
+{
+    int valu = checkBoxDualIsoHStripesFixCurrentValue();
+    llrpSetDualIsoHorizontalStripesFixMode( m_pMlvObject, checkBoxDualIsoHStripesFixCurrentValue() );
     resetMlvCache( m_pMlvObject );
     resetMlvCachedFrame( m_pMlvObject );
     m_frameChanged = true;
@@ -8647,6 +8695,7 @@ void MainWindow::on_checkBoxRawFixEnable_clicked(bool checked)
     ui->toolButtonDualIsoInterpolation->setEnabled( checked && ( toolButtonDualIsoCurrentIndex() == 1 ) );
     ui->toolButtonDualIsoAliasMap->setEnabled( checked && ( toolButtonDualIsoCurrentIndex() == 1 ) );
     ui->toolButtonDualIsoFullresBlending->setEnabled( checked && ( toolButtonDualIsoCurrentIndex() == 1 ) );
+    ui->checkBoxDualIsoHStripesFix->setEnabled( checked && ( toolButtonDualIsoCurrentIndex() == 1 ) );
     ui->spinBoxDeflickerTarget->setEnabled( checked );
     ui->toolButtonBadPixelsSearchMethodNormal->setEnabled( checked );
     ui->toolButtonBadPixelsSearchMethodAggressive->setEnabled( checked );
@@ -10656,3 +10705,4 @@ void MainWindow::on_actionSaveSessionMetadata_triggered()
     //Write file
     m_pModel->writeMetadataToCsv( fileName );
 }
+

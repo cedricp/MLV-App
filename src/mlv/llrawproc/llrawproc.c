@@ -135,7 +135,7 @@ llrawprocObject_t * initLLRawProcObject()
     llrawproc->dual_iso = 0;
     llrawproc->diso_averaging = 0;
     llrawproc->diso_alias_map = 1;
-    llrawproc->diso_frblending = 1;
+    llrawproc->diso_frblending = DISOI_FULLRES_ON;
     llrawproc->dark_frame = 0;
 
     llrawproc->dark_frame_filename = NULL;
@@ -313,7 +313,9 @@ void applyLLRawProcObject(mlvObject_t * video, uint16_t * raw_image_buff, size_t
                                video->llrawproc->diso_averaging,
                                video->llrawproc->diso_alias_map,
                                video->llrawproc->diso_frblending,
-                               video->llrawproc->chroma_smooth);
+                               video->llrawproc->chroma_smooth,
+                               video->llrawproc->bad_pixels,
+                               video->llrawproc->diso_hstripesfix);
 
             /* for full20bit set diso levels and bit depth to 16 bit, needed for cDNG export */
             int bits_shift = 16 - raw_info.bits_per_pixel;
@@ -323,19 +325,12 @@ void applyLLRawProcObject(mlvObject_t * video, uint16_t * raw_image_buff, size_t
         }
         else if (video->llrawproc->dual_iso == 2) // Preview mode
         {
-//            diso_get_preview(raw_image_buff,
-//                             raw_info.width,
-//                             raw_info.height,
-//                             raw_info.black_level,
-//                             raw_info.white_level,
-//                             0); // dual iso check mode is off
-
-            diso_get_full20bit(raw_info,
-                               raw_image_buff,
-                               video->llrawproc->diso_averaging,
-                               video->llrawproc->diso_alias_map,
-                               video->llrawproc->diso_frblending,
-                               video->llrawproc->chroma_smooth);
+            diso_get_preview(raw_image_buff,
+                             raw_info.width,
+                             raw_info.height,
+                             raw_info.black_level,
+                             raw_info.white_level,
+                             0); // dual iso check mode is off
         }
     }
 
@@ -546,6 +541,16 @@ int llrpGetDualIsoFullResBlendingMode(mlvObject_t * video)
 void llrpSetDualIsoFullResBlendingMode(mlvObject_t * video, int value)
 {
     video->llrawproc->diso_frblending = value;
+}
+
+int llrpGetDualIsoHorizontalStripesFixMode(mlvObject_t * video)
+{
+    return video->llrawproc->diso_hstripesfix;
+}
+
+void llrpSetDualIsoHorizontalStripesFixMode(mlvObject_t * video, int value)
+{
+    video->llrawproc->diso_hstripesfix = value;
 }
 
 int llrpGetDualIsoValidity(mlvObject_t * video)

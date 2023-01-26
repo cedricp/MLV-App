@@ -21,6 +21,7 @@
 #ifndef _pixelproc_h
 #define _pixelproc_h
 
+#include <inttypes.h>
 /* pixel map type */
 enum { PIX_FOCUS, PIX_BAD };
 
