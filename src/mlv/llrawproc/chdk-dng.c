@@ -686,54 +686,54 @@ static inline int raw_to_8bit(int raw, int wb, struct raw_info * raw_info)
     return COERCE(out, 0, 255);
 }
 
-static void create_thumbnail(struct raw_info * raw_info)
-{
-    register int i, j, x, y, yadj, xadj;
-    register char *buf = thumbnail_buf;
+//static void create_thumbnail(struct raw_info * raw_info)
+//{
+//    register int i, j, x, y, yadj, xadj;
+//    register char *buf = thumbnail_buf;
 
-    // The sensor bayer patterns are:
-    //  0x02010100  0x01000201  0x01020001
-    //      R G         G B         G R
-    //      G B         R G         B G
-    // for the second pattern yadj shifts the thumbnail row down one line
-    // for the third pattern xadj shifts the thumbnail row accross one pixel
-    // these make the patterns the same
-    yadj = (camera_sensor.cfa_pattern == 0x01000201) ? 1 : 0;
-    xadj = (camera_sensor.cfa_pattern == 0x01020001) ? 1 : 0;
+//    // The sensor bayer patterns are:
+//    //  0x02010100  0x01000201  0x01020001
+//    //      R G         G B         G R
+//    //      G B         R G         B G
+//    // for the second pattern yadj shifts the thumbnail row down one line
+//    // for the third pattern xadj shifts the thumbnail row accross one pixel
+//    // these make the patterns the same
+//    yadj = (camera_sensor.cfa_pattern == 0x01000201) ? 1 : 0;
+//    xadj = (camera_sensor.cfa_pattern == 0x01020001) ? 1 : 0;
     
-    for (i=0; i<dng_th_height; i++)
-        for (j=0; j<dng_th_width; j++)
-        {
-            x = camera_sensor.active_area.x1 + ((camera_sensor.jpeg.x + (camera_sensor.jpeg.width  * j) / dng_th_width)  & 0xFFFFFFFE) + xadj;
-            y = camera_sensor.active_area.y1 + ((camera_sensor.jpeg.y + (camera_sensor.jpeg.height * i) / dng_th_height) & 0xFFFFFFFE) + yadj;
+//    for (i=0; i<dng_th_height; i++)
+//        for (j=0; j<dng_th_width; j++)
+//        {
+//            x = camera_sensor.active_area.x1 + ((camera_sensor.jpeg.x + (camera_sensor.jpeg.width  * j) / dng_th_width)  & 0xFFFFFFFE) + xadj;
+//            y = camera_sensor.active_area.y1 + ((camera_sensor.jpeg.y + (camera_sensor.jpeg.height * i) / dng_th_height) & 0xFFFFFFFE) + yadj;
 
-            *buf++ = raw_to_8bit(get_raw_pixel(x,y), 0, raw_info);        // red pixel
-            *buf++ = raw_to_8bit(get_raw_pixel(x+1,y), -1, raw_info);      // green pixel
-            *buf++ = raw_to_8bit(get_raw_pixel(x+1,y+1), 0, raw_info);    // blue pixel
-        }
-}
+//            *buf++ = raw_to_8bit(get_raw_pixel(x,y), 0, raw_info);        // red pixel
+//            *buf++ = raw_to_8bit(get_raw_pixel(x+1,y), -1, raw_info);      // green pixel
+//            *buf++ = raw_to_8bit(get_raw_pixel(x+1,y+1), 0, raw_info);    // blue pixel
+//        }
+//}
 
 //-------------------------------------------------------------------
 // Write DNG header, thumbnail and data to file
 
-static int write_dng(FILE* fd, struct raw_info * raw_info, uint16_t * image_data)
-{
-    create_dng_header(raw_info);
-    char* rawadr = (void*)image_data;
+//static int write_dng(FILE* fd, struct raw_info * raw_info, uint16_t * image_data)
+//{
+//    create_dng_header(raw_info);
+//    char* rawadr = (void*)image_data;
 
-    if (dng_header_buf)
-    {
-        create_thumbnail(raw_info);
-        if (write(fd, dng_header_buf, dng_header_buf_size) != dng_header_buf_size) return 0;
-        if (write(fd, thumbnail_buf, dng_th_width*dng_th_height*3) != dng_th_width*dng_th_height*3) return 0;
+//    if (dng_header_buf)
+//    {
+//        create_thumbnail(raw_info);
+//        if (write(fd, dng_header_buf, dng_header_buf_size) != dng_header_buf_size) return 0;
+//        if (write(fd, thumbnail_buf, dng_th_width*dng_th_height*3) != dng_th_width*dng_th_height*3) return 0;
 
-        reverse_bytes_order(UNCACHEABLE(rawadr), camera_sensor.raw_size);
-        if (write(fd, UNCACHEABLE(rawadr), camera_sensor.raw_size) != camera_sensor.raw_size) return 0;
+//        reverse_bytes_order(UNCACHEABLE(rawadr), camera_sensor.raw_size);
+//        if (write(fd, UNCACHEABLE(rawadr), camera_sensor.raw_size) != camera_sensor.raw_size) return 0;
 
-        free_dng_header();
-    }
-    return 1;
-}
+//        free_dng_header();
+//    }
+//    return 1;
+//}
 
 #ifdef CONFIG_MAGICLANTERN
 PROP_HANDLER(PROP_CAM_MODEL)
@@ -743,27 +743,27 @@ PROP_HANDLER(PROP_CAM_MODEL)
 #endif
 
 /* returns 1 on success, 0 on error */
-int save_dng(char* filename, struct raw_info * raw_info, uint16_t * image_data)
-{
-    #ifdef RAW_DEBUG_BLACK
-    raw_info->active_area.x1 = 0;
-    raw_info->active_area.x2 = raw_info->width;
-    raw_info->active_area.y1 = 0;
-    raw_info->active_area.y2 = raw_info->height;
-    raw_info->jpeg.x = 0;
-    raw_info->jpeg.y = 0;
-    raw_info->jpeg.width = raw_info->width;
-    raw_info->jpeg.height = raw_info->height;
-    #endif
+//int save_dng(char* filename, struct raw_info * raw_info, uint16_t * image_data)
+//{
+//    #ifdef RAW_DEBUG_BLACK
+//    raw_info->active_area.x1 = 0;
+//    raw_info->active_area.x2 = raw_info->width;
+//    raw_info->active_area.y1 = 0;
+//    raw_info->active_area.y2 = raw_info->height;
+//    raw_info->jpeg.x = 0;
+//    raw_info->jpeg.y = 0;
+//    raw_info->jpeg.width = raw_info->width;
+//    raw_info->jpeg.height = raw_info->height;
+//    #endif
     
-    FILE* f = FIO_CreateFile(filename);
-    if (!f) return 0;
-    int ok = write_dng(f, raw_info, image_data);
-    FIO_CloseFile(f);
-    if (!ok)
-    {
-        FIO_RemoveFile(filename);
-        return 0;
-    }
-    return 1;
-}
+//    FILE* f = FIO_CreateFile(filename);
+//    if (!f) return 0;
+//    int ok = write_dng(f, raw_info, image_data);
+//    FIO_CloseFile(f);
+//    if (!ok)
+//    {
+//        FIO_RemoveFile(filename);
+//        return 0;
+//    }
+//    return 1;
+//}
