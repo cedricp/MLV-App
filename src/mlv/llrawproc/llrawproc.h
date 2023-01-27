@@ -87,7 +87,7 @@ void llrpSetDualIsoInterpolationMethod(mlvObject_t * video, int value);
 int llrpGetDualIsoAliasMapMode(mlvObject_t * video);
 void llrpSetDualIsoAliasMapMode(mlvObject_t * video, int value);
 
-enum { DISOI_FULLRES_OFF = 0, DISOI_FULLRES_SEMI = 2, DISOI_FULLRES_ON = 1 };
+enum { DISOI_FULLRES_OFF, DISOI_FULLRES_ON };
 int llrpGetDualIsoFullResBlendingMode(mlvObject_t * video);
 void llrpSetDualIsoFullResBlendingMode(mlvObject_t * video, int value);
 

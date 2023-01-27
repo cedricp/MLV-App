@@ -5446,8 +5446,6 @@ void MainWindow::setToolButtonDualIsoFullresBlending(int index)
         break;
     case 1: ui->toolButtonDualIsoFullresBlendingOn->setChecked( true );
         break;
-    case 2: ui->toolButtonDualIsoFullresBlendingSemi->setChecked( true );
-        break;
     default: break;
     }
     if( actualize ) toolButtonDualIsoFullresBlendingChanged();
@@ -5622,7 +5620,6 @@ int MainWindow::toolButtonDualIsoAliasMapCurrentIndex()
 int MainWindow::toolButtonDualIsoFullresBlendingCurrentIndex()
 {
     if( ui->toolButtonDualIsoFullresBlendingOff->isChecked() ) return 0;
-    else if( ui->toolButtonDualIsoFullresBlendingSemi->isChecked() ) return 2;
     else return 1;
 }
 

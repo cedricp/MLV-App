@@ -104,8 +104,6 @@ struct raw_info raw_info = {
     .calibration_illuminant1 = 1,       // Daylight
 };
 
-//static int hdr_check(struct raw_info raw_info, uint16_t * image_data);
-//static int black_subtract(struct raw_info raw_info, uint16_t * image_data, int left_margin, int top_margin);
 static int black_subtract_simple(struct raw_info raw_info, uint32_t * image_data, int left_margin, int top_margin);
 static void check_black_level(struct raw_info raw_info, uint32_t * raw_buffer_32);
 static void white_detect(struct raw_info raw_info, uint16_t * image_data, int* white_dark, int* white_bright, int * is_bright);
@@ -130,12 +128,6 @@ static inline int raw_get_pixel32( struct raw_info raw_info, uint32_t * raw_buff
     int value = buf[x + y * raw_info.width];
     return value;
 }
-
-//static inline void raw_set_pixel32( struct raw_info raw_info, uint32_t * raw_buffer_32,int x, int y, int value)
-//{
-//    uint32_t * buf = raw_buffer_32;
-//    buf[x + y * raw_info.width] = value;
-//}
 
 static inline int raw_get_pixel20( struct raw_info raw_info, uint32_t * raw_buffer_32, int x, int y)
 {
@@ -1987,6 +1979,8 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
 
     /* reconstruct a full-resolution image (discard interpolated fields whenever possible) */
     /* this has full detail and lowest possible aliasing, but it has high shadow noise and color artifacts when high-iso starts clipping */
+    /* TODO: How to find the right value for this? */
+    const int offset_threshold = 100000; /* Represents the maximum difference between the "same" pixel from exposure-corrected bright and dark images to be considered normal. */
     if (use_fullres)
     {
         printf("Full-res reconstruction...\n");
@@ -1997,12 +1991,11 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
                 if (BRIGHT_ROW)
                 {
                     uint32_t f = bright[x + y*w];
-                    if (use_fullres == 1){ /* Fullres on */
-                        /* if the brighter copy is overexposed, the guessed pixel for sure has higher brightness */
-//                        fullres[x + y*w] = f < (uint32_t)white_darkened ? f : MAX(f, dark[x + y*w]);
+                    /* if the brighter copy is overexposed, the guessed pixel for sure has higher brightness */
+                    if (ABS(((int)f)-((int)dark[x + y*w])) > offset_threshold){
+                        fullres[x + y*w] = dark[x + y*w];
+                    }else{
                         fullres[x + y*w] = f < (uint32_t)white_darkened ? f : MAX(f, dark[x + y*w]);
-                    }else if (use_fullres == 2){ /* Semi fullres, prevent highlight artifacts */
-                        fullres[x + y*w] = MAX(f, dark[x + y*w]);
                     }
                 }
                 else
@@ -2029,8 +2022,7 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
 
     /* you get better colors, less noise, but a little more jagged edges if we underestimate the overlap amount */
     /* maybe expose a tuning factor? (preference towards resolution or colors) */
-    //overlap -= MIN(3, overlap - 3);
-    overlap -= MIN(5, overlap - 5);
+    overlap -= MIN(3, overlap - 3);
 
     printf("ISO overlap     : %.1f EV (approx)\n", overlap);
 
@@ -2454,31 +2446,6 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
 
         double max_wb = MAX(baked_wb[0], baked_wb[2]);
         printf("Soft-film curve : +%.2f EV baked at WB %.2f %.2f %.2f\n", log2(exposure), baked_wb[0], baked_wb[1], baked_wb[2]);
-
-        if (0)
-        {
-            FILE* f = fopen("soft-film.m", "w");
-            for (int k = 0; k < 3; k++)
-            {
-                double wb = baked_wb[k];
-                char* rgb = "rgb";
-                fprintf(f, "s%c = [", rgb[k]);
-                for (int i = 0; i < 1<<20; i++)
-                {
-                    int raw_compressed = soft_film_bakedwb(i, exposure, black, white, black/16, white/16, wb, max_wb);
-                    fprintf(f, "%d ", raw_compressed);
-                }
-                fprintf(f, "];\n");
-            }
-
-            fprintf(f, "x = log2(max(1,(1:2^20) - 1 - %d));\n", black);
-            fprintf(f, "yr = log2(max(1, sr - %d));\n", black/16);
-            fprintf(f, "yg = log2(max(1, sg - %d));\n", black/16);
-            fprintf(f, "yb = log2(max(1, sb - %d));\n", black/16);
-            fprintf(f, "plot(x, yr, 'r', x, yg, 'g', x, yb, 'b')\n");
-            fclose(f);
-//            if(system("octave --persist soft-film.m"));
-        }
 
         for (int y = 0; y < h; y++)
         {
