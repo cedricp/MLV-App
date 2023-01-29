@@ -836,6 +836,7 @@ static inline void build_ev2raw_lut(int * raw2ev, int * ev2raw_0, int black, int
     int* ev2raw = ev2raw_0 + 10*EV_RESOLUTION;
     
     //#pragma omp parallel for
+    #pragma omp parallel for schedule(static) default(none) shared(black, raw2ev)
     for (int i = 0; i < 1<<20; i++)
     {
         double signal = MAX(i/64.0 - black/64.0, -1023);
@@ -846,12 +847,14 @@ static inline void build_ev2raw_lut(int * raw2ev, int * ev2raw_0, int black, int
     }
     
     //#pragma omp parallel for
+    #pragma omp parallel for schedule(static) default(none) shared(black, ev2raw)
     for (int i = -10*EV_RESOLUTION; i < 0; i++)
     {
         ev2raw[i] = COERCE(black+64 - round(64*pow(2, ((double)-i/EV_RESOLUTION))), 0, black);
     }
     
     //#pragma omp parallel for
+    #pragma omp parallel for schedule(static) default(none) shared(black, ev2raw, raw2ev, white)
     for (int i = 0; i < 14*EV_RESOLUTION; i++)
     {
         ev2raw[i] = COERCE(black-64 + round(64*pow(2, ((double)i/EV_RESOLUTION))), black, (1<<20)-1);
@@ -1096,6 +1099,7 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
             previous_black = black;
         }
         //#pragma omp parallel for
+        #pragma omp parallel for schedule(static) default(none) shared(edge_direction, raw2ev,gray,is_bright, white_darkened, h, w, raw_info, raw_buffer_32, black, white, d0, edge_directions, fullres_curve, fullres_thr) reduction(+:not_shadow) reduction(+:deep_shadow) reduction(+:not_overexposed) reduction(+:semi_overexposed)
         for (int y = 5; y < h-5; y ++)
         {
             int s = (is_bright[y%4] == is_bright[(y+1)%4]) ? -1 : 1;    /* points to the closest row having different exposure */
@@ -1260,6 +1264,7 @@ static inline void mean23_interpolate(struct raw_info raw_info, uint32_t * raw_b
             previous_black = black;
         }
         //#pragma omp parallel for
+        #pragma omp parallel for schedule(static) default(none) shared(is_bright, dark, bright, white_darkened, h, w, raw_info, raw_buffer_32, black, white, raw2ev, ev2raw)
         for (int y = 2; y < h-2; y ++)
         {
             uint32_t* native = BRIGHT_ROW ? bright : dark;
@@ -1367,21 +1372,28 @@ static inline void fullres_reconstruction(struct raw_info raw_info, uint32_t * f
     int w = raw_info.width;
     int h = raw_info.height;
     
+    int offset_threshold = 100000;
     /* reconstruct a full-resolution image (discard interpolated fields whenever possible) */
     /* this has full detail and lowest possible aliasing, but it has high shadow noise and color artifacts when high-iso starts clipping */
 #ifndef STDOUT_SILENT
     printf("Full-res reconstruction...\n");
 #endif
     //#pragma omp parallel for collapse(2)
+    #pragma omp parallel for schedule(static) default(none) shared(fullres, offset_threshold, is_bright, dark, bright, white_darkened, h, w)
     for (int y = 0; y < h; y ++)
     {
         for (int x = 0; x < w; x ++)
         {
+            uint32_t d = dark[x + y*w];
+            uint32_t f = bright[x + y*w];
             if (BRIGHT_ROW)
             {
-                uint32_t f = bright[x + y*w];
                 /* if the brighter copy is overexposed, the guessed pixel for sure has higher brightness */
-                fullres[x + y*w] = f < white_darkened ? f : MAX(f, dark[x + y*w]);
+                if (ABS(((int)f)-((int)d)) > offset_threshold){
+                    fullres[x + y*w] = d;
+                }else{
+                    fullres[x + y*w] = f < (uint32_t)white_darkened ? f : MAX(f, d);
+                }
             }
             else
             {
@@ -1544,7 +1556,7 @@ static inline void hdr_chroma_smooth(struct raw_info raw_info, uint32_t * input,
     }
 }
 
-static inline int mix_images(struct raw_info raw_info, uint32_t* fullres, uint32_t* fullres_smooth, uint32_t* halfres, uint32_t* halfres_smooth, uint16_t* alias_map, uint32_t* dark, uint32_t* bright, uint16_t * overexposed, int dark_noise, uint32_t white_darkened, double corr_ev, double lowiso_dr, uint32_t black, uint32_t white, int chroma_smooth_method)
+static inline int mix_images(struct raw_info raw_info, uint32_t* fullres, uint32_t* fullres_smooth, uint32_t* halfres, uint32_t* halfres_smooth, uint16_t* alias_map, uint32_t* dark, uint32_t* bright, uint16_t * overexposed, int dark_noise, uint32_t white_darkened, double corr_ev, double lowiso_dr, uint32_t black, uint32_t white, int chroma_smooth_method, int use_fullres)
 {
     int w = raw_info.width;
     int h = raw_info.height;
@@ -1590,6 +1602,7 @@ static inline int mix_images(struct raw_info raw_info, uint32_t* fullres, uint32
     double * mix_curve = malloc((1<<20) * sizeof(double));
     
     //#pragma omp parallel for
+    #pragma omp parallel for schedule(static) default(none) shared(corr_ev, max_ev, overlap, black, mix_curve)
     for (int i = 0; i < 1<<20; i++)
     {
         double ev = log2(MAX(i/64.0 - black/64.0, 1)) + corr_ev;
@@ -1607,7 +1620,7 @@ static inline int mix_images(struct raw_info raw_info, uint32_t* fullres, uint32
     /* handle sub-black values (negative EV) */
     int* ev2raw = ev2raw_0 + 10*EV_RESOLUTION;
     
-    LOCK(ev2raw_mutex)
+    //LOCK(ev2raw_mutex)
     {
         if(black != previous_black)
         {
@@ -1616,6 +1629,7 @@ static inline int mix_images(struct raw_info raw_info, uint32_t* fullres, uint32
         }
         
         //#pragma omp parallel for collapse(2)
+        #pragma omp parallel for schedule(static) default(none) shared(bright, dark, h, w, raw2ev, ev2raw, mix_curve, halfres)
         for (int y = 0; y < h; y ++)
         {
             for (int x = 0; x < w; x ++)
@@ -1643,7 +1657,16 @@ static inline int mix_images(struct raw_info raw_info, uint32_t* fullres, uint32
 #ifndef STDOUT_SILENT
             printf("Chroma smoothing...\n");
 #endif
-            memcpy(fullres_smooth, fullres, w * h * sizeof(uint32_t));
+//            memcpy(fullres_smooth, fullres, w * h * sizeof(uint32_t));
+//            memcpy(halfres_smooth, halfres, w * h * sizeof(uint32_t));
+
+            if (use_fullres)
+            {
+                fullres_smooth = malloc(w * h * sizeof(uint32_t));
+                memcpy(fullres_smooth, fullres, w * h * sizeof(uint32_t));
+            }
+
+            halfres_smooth = malloc(w * h * sizeof(uint32_t));
             memcpy(halfres_smooth, halfres, w * h * sizeof(uint32_t));
             hdr_chroma_smooth(raw_info, fullres, fullres_smooth, chroma_smooth_method, raw2ev, ev2raw);
             hdr_chroma_smooth(raw_info, halfres, halfres_smooth, chroma_smooth_method, raw2ev, ev2raw);
@@ -1653,7 +1676,7 @@ static inline int mix_images(struct raw_info raw_info, uint32_t* fullres, uint32
             build_alias_map(raw_info, alias_map, fullres_smooth, halfres_smooth, bright, dark_noise, black, raw2ev);
         }
     }
-    UNLOCK(ev2raw_mutex)
+    //UNLOCK(ev2raw_mutex)
     
     //#pragma omp parallel for collapse(2)
     for (int y = 0; y < h; y ++)
@@ -1693,7 +1716,7 @@ static inline int mix_images(struct raw_info raw_info, uint32_t* fullres, uint32
     return 1;
 }
 
-static inline void final_blend(struct raw_info raw_info, uint32_t* raw_buffer_32, uint32_t* fullres, uint32_t* fullres_smooth, uint32_t* halfres_smooth, uint32_t* dark, uint32_t* bright, uint16_t* overexposed, uint16_t* alias_map, int black, int white, int dark_noise)
+static inline void final_blend(struct raw_info raw_info, uint32_t* raw_buffer_32, uint32_t* fullres, uint32_t* fullres_smooth, uint32_t* halfres_smooth, uint32_t* dark, uint32_t* bright, uint16_t* overexposed, uint16_t* alias_map, int black, int white, int dark_noise, int use_fullres)
 {
     /* fullres mixing curve */
     double * fullres_curve = build_fullres_curve(black);
@@ -1709,88 +1732,87 @@ static inline void final_blend(struct raw_info raw_info, uint32_t* raw_buffer_32
     /* handle sub-black values (negative EV) */
     int* ev2raw = ev2raw_0 + 10*EV_RESOLUTION;
     
-    LOCK(ev2raw_mutex)
+    if(black != previous_black)
     {
-        if(black != previous_black)
-        {
-            build_ev2raw_lut(raw2ev, ev2raw_0, black, white);
-            previous_black = black;
-        }
+        build_ev2raw_lut(raw2ev, ev2raw_0, black, white);
+        previous_black = black;
+    }
 #ifndef STDOUT_SILENT
         printf("Final blending...\n");
 #endif
-        //#pragma omp parallel for collapse(2)
-        for (int y = 0; y < h; y ++)
+    //#pragma omp parallel for collapse(2)
+    for (int y = 0; y < h; y ++)
+    {
+        for (int x = 0; x < w; x ++)
         {
-            for (int x = 0; x < w; x ++)
+            /* high-iso image (for measuring signal level) */
+            int b = bright[x + y*w];
+
+            /* half-res image (interpolated and chroma filtered, best for low-contrast shadows) */
+            int hr = halfres_smooth[x + y*w];
+
+            /* full-res image (non-interpolated, except where one ISO is blown out) */
+            int fr = fullres[x + y*w];
+
+            /* full res with some smoothing applied to hide aliasing artifacts */
+            int frs = fullres_smooth[x + y*w];
+
+            /* go from linear to EV space */
+            int hrev = raw2ev[hr];
+            int frev = raw2ev[fr];
+            int frsev = raw2ev[frs];
+
+            int output = hrev;
+
+            /* blending factor */
+            if (use_fullres)
             {
-                /* high-iso image (for measuring signal level) */
-                int b = bright[x + y*w];
-                
-                /* half-res image (interpolated and chroma filtered, best for low-contrast shadows) */
-                int hr = halfres_smooth[x + y*w];
-                
-                /* full-res image (non-interpolated, except where one ISO is blown out) */
-                int fr = fullres[x + y*w];
-                
-                /* full res with some smoothing applied to hide aliasing artifacts */
-                int frs = fullres_smooth[x + y*w];
-                
-                /* go from linear to EV space */
-                int hrev = raw2ev[hr];
-                int frev = raw2ev[fr];
-                int frsev = raw2ev[frs];
-                
-                int output = 0;
-                
-                /* blending factor */
                 double f = fullres_curve[b & 0xFFFFF];
-                
+
                 double c = 0;
-                
+
                 if (alias_map)
                 {
                     int co = alias_map[x + y*w];
                     c = COERCE(co / (double) ALIAS_MAP_MAX, 0, 1);
                 }
-                
+
                 double ovf = COERCE(overexposed[x + y*w] / 200.0, 0, 1);
                 c = MAX(c, ovf);
-                
+
                 double noisy_or_overexposed = MAX(ovf, 1-f);
-                
+
                 /* use data from both ISOs in high-detail areas, even if it's noisier (less aliasing) */
                 f = MAX(f, c);
-                
+
                 /* use smoothing in noisy near-overexposed areas to hide color artifacts */
                 double fev = noisy_or_overexposed * frsev + (1-noisy_or_overexposed) * frev;
-                
+
                 /* limit the use of fullres in dark areas (fixes some black spots, but may increase aliasing) */
                 int sig = (dark[x + y*w] + bright[x + y*w]) / 2;
                 f = MAX(0, MIN(f, (double)(sig - black) / (4*dark_noise)));
-                
+
                 /* blend "half-res" and "full-res" images smoothly to avoid banding*/
                 output = hrev * (1-f) + fev * f;
-                
+
                 /* show full-res map (for debugging) */
                 //~ output = f * 14*EV_RESOLUTION;
-                
+
                 /* show alias map (for debugging) */
                 //~ output = c * 14*EV_RESOLUTION;
-                
+
                 //~ output = hotpixel[x+y*w] ? 14*EV_RESOLUTION : 0;
                 //~ output = raw2ev[dark[x+y*w]];
                 /* safeguard */
                 output = COERCE(output, -10*EV_RESOLUTION, 14*EV_RESOLUTION-1);
-                
-                
-                /* back to linear space and commit */
-                raw_set_pixel32(x, y, ev2raw[output]);
             }
+
+            /* back to linear space and commit */
+            raw_set_pixel32(x, y, ev2raw[output]);
         }
     }
-    UNLOCK(ev2raw_mutex)
 }
+
 
 static inline void convert_20_to_16bit(struct raw_info raw_info, uint16_t * image_data, uint32_t * raw_buffer_32)
 {
@@ -1874,14 +1896,14 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     memset(halfres, 0, w * h * sizeof(uint32_t));
     uint32_t* halfres_smooth = halfres;
     
-    if (chroma_smooth_method)
-    {
-        if (use_fullres)
-        {
-            fullres_smooth = malloc(w * h * sizeof(uint32_t));
-        }
-        halfres_smooth = malloc(w * h * sizeof(uint32_t));
-    }
+//    if (chroma_smooth_method)
+//    {
+//        if (use_fullres)
+//        {
+//            fullres_smooth = malloc(w * h * sizeof(uint32_t));
+//        }
+//        halfres_smooth = malloc(w * h * sizeof(uint32_t));
+//    }
     
     /* overexposure map */
     uint16_t * overexposed = malloc(w * h * sizeof(uint16_t));
@@ -1936,7 +1958,7 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
 
     if (use_fullres) fullres_reconstruction(raw_info, fullres, dark, bright, white_darkened, is_bright);
 
-    if(mix_images(raw_info, fullres, fullres_smooth, halfres, halfres_smooth, alias_map, dark, bright, overexposed, dark_noise, white_darkened, corr_ev, lowiso_dr, black, white, chroma_smooth_method))
+    if(mix_images(raw_info, fullres, fullres_smooth, halfres, halfres_smooth, alias_map, dark, bright, overexposed, dark_noise, white_darkened, corr_ev, lowiso_dr, black, white, chroma_smooth_method, use_fullres))
     {
         /* let's check the ideal noise levels (on the halfres image, which in black areas is identical to the bright one) */
         //#pragma omp parallel for collapse(2)
@@ -1947,7 +1969,7 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
 #ifndef STDOUT_SILENT
         double ideal_noise_std = noise_std[0];
 #endif
-        final_blend(raw_info, raw_buffer_32, fullres, fullres_smooth, halfres_smooth, dark, bright, overexposed, alias_map, black, white, dark_noise);
+        final_blend(raw_info, raw_buffer_32, fullres, fullres_smooth, halfres_smooth, dark, bright, overexposed, alias_map, black, white, dark_noise, use_fullres);
 
         /* let's see how much dynamic range we actually got */
         compute_black_noise(raw_info, image_data, 8, raw_info.active_area.x1 - 8, raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0]);

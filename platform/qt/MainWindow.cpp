@@ -1242,10 +1242,10 @@ void MainWindow::initGui( void )
     ui->horizontalSliderFilterStrength->setEnabled( false );
 
     //Hide DualIso Fullres Blending (only brings black frame if off)
-    ui->DualISOFullresBlendingLabel->setVisible( false );
-    ui->toolButtonDualIsoFullresBlending->setVisible( false );
-    ui->toolButtonDualIsoFullresBlendingOff->setVisible( false );
-    ui->toolButtonDualIsoFullresBlendingOn->setVisible( false );
+//    ui->DualISOFullresBlendingLabel->setVisible( false );
+//    ui->toolButtonDualIsoFullresBlending->setVisible( false );
+//    ui->toolButtonDualIsoFullresBlendingOff->setVisible( false );
+//    ui->toolButtonDualIsoFullresBlendingOn->setVisible( false );
 
     //Set up image in GUI
     QImage image(":/IMG/IMG/histogram.png");
@@ -8449,6 +8449,7 @@ void MainWindow::toolButtonDualIsoChanged( void )
     //In preview mode, the other dualIso options are grayed out
     if( ( toolButtonDualIsoCurrentIndex() == 1 ) && ui->checkBoxRawFixEnable->isChecked() )
     {
+        ui->DualISOFullresBlendingLabel->setEnabled( true );
         ui->toolButtonDualIsoInterpolation->setEnabled( true );
         ui->toolButtonDualIsoAliasMap->setEnabled( true );
         ui->toolButtonDualIsoFullresBlending->setEnabled( true );
@@ -8457,6 +8458,7 @@ void MainWindow::toolButtonDualIsoChanged( void )
     }
     else
     {
+        ui->DualISOFullresBlendingLabel->setEnabled( false );
         ui->toolButtonDualIsoInterpolation->setEnabled( false );
         ui->toolButtonDualIsoAliasMap->setEnabled( false );
         ui->toolButtonDualIsoFullresBlending->setEnabled( false );
