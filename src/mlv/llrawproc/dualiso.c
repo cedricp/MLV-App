@@ -54,7 +54,7 @@ int diso_get_preview(uint16_t * image_data, uint16_t width, uint16_t height, int
     
     for(int i = 0; i < 4; i++)
         hist[i] = hist_create(white);
-    
+
     for(uint16_t y = 4; y < height - 4; y += 5)
     {
         hist_add(hist[y % 4], &(image_data[y * width + (y + 1) % 2]), width - (y + 1) % 2, 3);
@@ -250,6 +250,7 @@ int diso_get_preview(uint16_t * image_data, uint16_t width, uint16_t height, int
 
 #define raw_get_pixel(x,y) (image_data[(x) + (y) * raw_info.width])
 #define raw_get_pixel16(x,y) (image_data[(x) + (y) * raw_info.width])
+#define raw_get_pixel20(x,y) ((raw_buffer_32[(x) + (y) * raw_info.width]) & 0xFFFFF)
 #define raw_get_pixel_14to20(x,y) ((((uint32_t)image_data[(x) + (y) * raw_info.width]) << 6) & 0xFFFFF)
 #define raw_get_pixel32(x,y) (raw_buffer_32[(x) + (y) * raw_info.width])
 #define raw_set_pixel32(x,y,value) raw_buffer_32[(x) + (y)*raw_info.width] = value
@@ -257,11 +258,22 @@ int diso_get_preview(uint16_t * image_data, uint16_t width, uint16_t height, int
 #define raw_set_pixel_20to16_rand(x,y,value) image_data[(x) + (y) * raw_info.width] = COERCE((int)((value) / 16.0 + fast_randn05() + 0.5), 0, 0xFFFF)
 #define raw_set_pixel20(x,y,value) raw_buffer_32[(x) + (y) * raw_info.width] = COERCE((value), 0, 0xFFFFF)
 
+static const double fullres_start = 4;
+static const double fullres_transition = 4;
 static const double fullres_thr = 0.8;
 
 /* trial and error - too high = aliasing, too low = noisy */
 static const int ALIAS_MAP_MAX = 15000;
 
+static inline int FC(int row, int col)
+{
+    if ((row%2) == 0 && (col%2) == 0)
+        return 0;  /* red */
+    else if ((row%2) == 1 && (col%2) == 1)
+        return 2;  /* blue */
+    else
+        return 1;  /* green */
+}
 static void white_detect(struct raw_info raw_info, uint16_t * image_data, int* white_dark, int* white_bright, int * is_bright)
 {
     /* sometimes the white level is much lower than 15000; this would cause pink highlights */
@@ -285,6 +297,7 @@ static void white_detect(struct raw_info raw_info, uint16_t * image_data, int* w
     /* collect all the pixels and find the k-th max, thus ignoring hot pixels */
     /* change the sign in order to use kth_smallest_int */
     //#pragma omp parallel for collapse(2)
+//#pragma omp parallel for schedule(static) default(none) shared(raw_info, image_data, max_pix, counts, pixels, is_bright)
     for (int y = raw_info.active_area.y1; y < raw_info.active_area.y2; y += 3)
     {
         for (int x = raw_info.active_area.x1; x < raw_info.active_area.x2; x += 3)
@@ -294,6 +307,7 @@ static void white_detect(struct raw_info raw_info, uint16_t * image_data, int* w
 #define BIN_IDX is_bright[y%4]
             counts[BIN_IDX] = MIN(counts[BIN_IDX], max_pix-1);
             pixels[BIN_IDX][counts[BIN_IDX]] = -pix;
+#pragma omp atomic
             counts[BIN_IDX]++;
 #undef BIN_IDX
         }
@@ -321,11 +335,13 @@ static void compute_black_noise(struct raw_info raw_info, uint16_t * image_data,
     int num = 0;
     /* compute average level */
     //#pragma omp parallel for collapse(2)
+//#pragma omp parallel for schedule(static) default(none) shared(raw_info, image_data,y1,y2,dy,dx,x1,x2,num) reduction(+:black)
     for (int y = y1; y < y2; y += dy)
     {
         for (int x = x1; x < x2; x += dx)
         {
             black += raw_get_pixel(x, y);
+#pragma omp atomic
             num++;
         }
     }
@@ -335,6 +351,7 @@ static void compute_black_noise(struct raw_info raw_info, uint16_t * image_data,
     /* compute standard deviation */
     double stdev = 0;
     //#pragma omp parallel for collapse(2)
+//#pragma omp parallel for schedule(static) default(none) shared(raw_info, image_data, mean,y1,y2,dy,dx,x1,x2) reduction(+:stdev)
     for (int y = y1; y < y2; y += dy)
     {
         for (int x = x1; x < x2; x += dx)
@@ -441,16 +458,20 @@ static int identify_rggb_or_gbrg(struct raw_info raw_info, uint16_t * image_data
     
     /* to simplify things, analyze an identical number of bright and dark lines */
     //#pragma omp parallel for collapse(2)
+//#pragma omp parallel for schedule(static) default(none) shared(raw_info, image_data, y0, h, w,hist)
     for (int y = y0; y < h/4*4; y++)
     {
-        for (int x = 0; x < w; x++)
+        for (int x = 0; x < w; x++){
+#pragma omp atomic
             hist[(y%2)*2 + (x%2)][raw_get_pixel16(x,y) & 16383]++;
+        }
     }
     
     /* compute cdf */
     for (int k = 0; k < 4; k++)
     {
         int acc = 0;
+//#pragma omp parallel for schedule(static) default(none) shared(hist,k) reduction(+:acc)
         for (int i = 0; i < 16384; i++)
         {
             acc += hist[k][i];
@@ -518,6 +539,7 @@ static int identify_bright_and_dark_fields(struct raw_info raw_info, uint16_t * 
     int y0 = (raw_info.active_area.y1 + 3) & ~3;
     
     /* to simplify things, analyze an identical number of bright and dark lines */
+//#pragma omp parallel for schedule(static) default(none) shared(raw_info, image_data, y0,h,w,hist)
     for (int y = y0; y < h/4*4; y++)
     {
         for (int x = 0; x < w; x++)
@@ -525,6 +547,7 @@ static int identify_bright_and_dark_fields(struct raw_info raw_info, uint16_t * 
             if ((x%2) != (y%2))
             {
                 /* only check the green pixels */
+#pragma omp atomic
                 hist[y%4][raw_get_pixel16(x,y) & 16383]++;
             }
         }
@@ -645,6 +668,7 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     memset(bright, 0, w * h * sizeof(bright[0]));
     
     //#pragma omp parallel for
+//#pragma omp parallel for schedule(static) default(none) shared(raw_info, raw_buffer_32, is_bright, y0,h,w,black,dark,bright,clip,clip0)
     for (int y = y0; y < h-2; y += 3)
     {
         int* native = BRIGHT_ROW ? bright : dark;
@@ -679,13 +703,16 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     
     /* median_bright */
     int n = 0;
+//#pragma omp parallel for schedule(static) default(none) shared(is_bright,bright,clip, y0,h,w,n,tmp)
     for (int y = y0; y < h-2; y += 3)
     {
         for (int x = 0; x < w; x += 3)
         {
             int b = bright[x + y*w];
             if (b >= clip) continue;
-            tmp[n++] = b;
+#pragma omp atomic
+            n++;
+            tmp[n] = b;
         }
     }
     int bmed = median_int_wirth(tmp, n);
@@ -698,6 +725,7 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     
     /* median_dark */
     n = 0;
+//#pragma omp parallel for schedule(static) default(none) shared(dark, bright, y0,h,w,n,tmp,clip)
     for (int y = y0; y < h-2; y += 3)
     {
         for (int x = 0; x < w; x += 3)
@@ -705,7 +733,9 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
             int d = dark[x + y*w];
             int b = bright[x + y*w];
             if (b >= clip) continue;
-            tmp[n++] = d;
+#pragma omp atomic
+            n++;
+            tmp[n] = d;
         }
     }
     int dmed = median_int_wirth(tmp, n);
@@ -773,6 +803,7 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     /* apply the correction */
     double b20 = b * 16;
     //#pragma omp parallel for collapse(2)
+//#pragma omp parallel for schedule(static) default(none) shared(black20, is_bright, h, w, b20, raw_buffer_32, raw_info, a)
     for (int y = 0; y < h; y ++)
     {
         for (int x = 0; x < w; x ++)
@@ -824,6 +855,7 @@ static inline uint32_t * convert_to_20bit(struct raw_info raw_info, uint16_t * i
     uint32_t * raw_buffer_32 = malloc(w * h * sizeof(raw_buffer_32[0]));
     
     //#pragma omp parallel for collapse(2)
+#pragma omp parallel for schedule(static) default(none) shared(raw_info,raw_buffer_32, h,w,image_data)
     for (int y = 0; y < h; y ++)
         for (int x = 0; x < w; x ++)
             raw_buffer_32[x + y*w] = raw_get_pixel_14to20(x, y);
@@ -836,7 +868,7 @@ static inline void build_ev2raw_lut(int * raw2ev, int * ev2raw_0, int black, int
     int* ev2raw = ev2raw_0 + 10*EV_RESOLUTION;
     
     //#pragma omp parallel for
-    #pragma omp parallel for schedule(static) default(none) shared(black, raw2ev)
+#pragma omp parallel for schedule(static) default(none) shared(black, raw2ev)
     for (int i = 0; i < 1<<20; i++)
     {
         double signal = MAX(i/64.0 - black/64.0, -1023);
@@ -847,14 +879,14 @@ static inline void build_ev2raw_lut(int * raw2ev, int * ev2raw_0, int black, int
     }
     
     //#pragma omp parallel for
-    #pragma omp parallel for schedule(static) default(none) shared(black, ev2raw)
+#pragma omp parallel for schedule(static) default(none) shared(black, ev2raw)
     for (int i = -10*EV_RESOLUTION; i < 0; i++)
     {
         ev2raw[i] = COERCE(black+64 - round(64*pow(2, ((double)-i/EV_RESOLUTION))), 0, black);
     }
     
     //#pragma omp parallel for
-    #pragma omp parallel for schedule(static) default(none) shared(black, ev2raw, raw2ev, white)
+#pragma omp parallel for schedule(static) default(none) shared(black, ev2raw, raw2ev, white)
     for (int i = 0; i < 14*EV_RESOLUTION; i++)
     {
         ev2raw[i] = COERCE(black-64 + round(64*pow(2, ((double)i/EV_RESOLUTION))), black, (1<<20)-1);
@@ -877,6 +909,7 @@ static inline void build_ev2raw_lut(int * raw2ev, int * ev2raw_0, int black, int
 static inline double compute_noise(struct raw_info raw_info, uint16_t * image_data, double * noise_std, double * dark_noise, double * bright_noise, double * dark_noise_ev, double * bright_noise_ev)
 {
     double noise_avg = 0.0;
+#pragma omp parallel for schedule(static) num_threads(4) default(none) shared(raw_info, image_data, noise_avg, noise_std)
     for (int y = 0; y < 4; y++)
         compute_black_noise(raw_info, image_data, 8, raw_info.active_area.x1 - 8, raw_info.active_area.y1/4*4 + 20 + y, raw_info.active_area.y2 - 20, 1, 4, &noise_avg, &noise_std[y]);
 #ifndef STDOUT_SILENT
@@ -898,12 +931,9 @@ static inline double * build_fullres_curve(int black)
     if(previous_black == black) return fullres_curve;
     
     previous_black = black;
-    
-    const double fullres_start = 4;
-    const double fullres_transition = 4;
-    //const double fullres_thr = 0.8;
-    
+       
     //#pragma omp parallel for
+#pragma omp parallel for schedule(static) default(none) shared(black,fullres_curve,fullres_start,fullres_transition)
     for (int i = 0; i < (1<<20); i++)
     {
         double ev2 = log2(MAX(i/64.0 - black/64.0, 1));
@@ -968,6 +998,7 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
     float** blue    = malloc(h * sizeof(blue[0]));
     
     //#pragma omp parallel for
+#pragma omp parallel for schedule(static) default(none) shared(h, w, rawData, red, green, blue)
     for (int i = 0; i < h; i++)
     {
         int wx = w + 16;
@@ -988,6 +1019,7 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
         if (yh < 0) /* make sure we start at the same parity (RGGB cell) */
             yh = y;
         
+#pragma omp parallel for schedule(static) default(none) shared(is_bright, w,yh,y, rawData, raw_buffer_32, raw_info, black)
         for (int x = 0; x < w; x++)
         {
             int p = raw_get_pixel32(x, y);
@@ -1012,7 +1044,7 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
         
         if (yh < 0) /* make sure we start with the same parity (RGGB cell) */
             yh = h/4*2 + y;
-        
+#pragma omp parallel for schedule(static) default(none) shared(is_bright, w,yh,y, rawData, raw_buffer_32, raw_info, black)
         for (int x = 0; x < w; x++)
         {
             int p = raw_get_pixel32(x, y);
@@ -1039,14 +1071,13 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
                            );
 #endif
     //IDK if AMaZE is actually thread safe, but I'm just going to assume not, rather than inspecting that huge mess of code
-    LOCK(amaze_mutex)
-    {
-        demosaic(& (amazeinfo_t) { rawData, red, green, blue, 0, 0, w, h, 0, 0 });
-    }
-    UNLOCK(amaze_mutex)
+
+    demosaic(& (amazeinfo_t) { rawData, red, green, blue, 0, 0, w, h, 0, 0 });
+
     
     /* undo green channel scaling and clamp the other channels */
     //#pragma omp parallel for collapse(2)
+#pragma omp parallel for schedule(static) default(none) shared(green, red, blue, h, w, black)
     for (int y = 0; y < h; y ++)
     {
         for (int x = 0; x < w; x ++)
@@ -1063,6 +1094,7 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
     /* convert to grayscale and de-squeeze for easier processing */
     uint32_t * gray = malloc(w * h * sizeof(gray[0]));
     //#pragma omp parallel for collapse(2)
+#pragma omp parallel for schedule(static) default(none) shared(gray, green, red, blue, h, w, squeezed)
     for (int y = 0; y < h; y ++)
         for (int x = 0; x < w; x ++)
             gray[x + y*w] = green[squeezed[y]][x]/2 + red[squeezed[y]][x]/4 + blue[squeezed[y]][x]/4;
@@ -1071,6 +1103,7 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
     uint8_t* edge_direction = malloc(w * h * sizeof(edge_direction[0]));
     int d0 = COUNT(edge_directions)/2;
     //#pragma omp parallel for collapse(2)
+#pragma omp parallel for schedule(static) default(none) shared(edge_direction, green, red, blue, h, w,d0)
     for (int y = 0; y < h; y ++)
         for (int x = 0; x < w; x ++)
             edge_direction[x + y*w] = d0;
@@ -1091,137 +1124,135 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
     /* handle sub-black values (negative EV) */
     int* ev2raw = ev2raw_0 + 10*EV_RESOLUTION;
     
-    LOCK(ev2raw_mutex)
+
+    if(black != previous_black)
     {
-        if(black != previous_black)
-        {
-            build_ev2raw_lut(raw2ev, ev2raw_0, black, white);
-            previous_black = black;
-        }
+        build_ev2raw_lut(raw2ev, ev2raw_0, black, white);
+        previous_black = black;
+    }
+    //#pragma omp parallel for
+#pragma omp parallel for schedule(static) default(none) shared(edge_direction, raw2ev,gray,is_bright, white_darkened, h, w, raw_info, raw_buffer_32, black, white, d0, edge_directions, fullres_curve, fullres_thr) reduction(+:not_shadow) reduction(+:deep_shadow) reduction(+:not_overexposed) reduction(+:semi_overexposed)
+    for (int y = 5; y < h-5; y ++)
+    {
+        int s = (is_bright[y%4] == is_bright[(y+1)%4]) ? -1 : 1;    /* points to the closest row having different exposure */
         //#pragma omp parallel for
-        #pragma omp parallel for schedule(static) default(none) shared(edge_direction, raw2ev,gray,is_bright, white_darkened, h, w, raw_info, raw_buffer_32, black, white, d0, edge_directions, fullres_curve, fullres_thr) reduction(+:not_shadow) reduction(+:deep_shadow) reduction(+:not_overexposed) reduction(+:semi_overexposed)
-        for (int y = 5; y < h-5; y ++)
+        for (int x = 5; x < w-5; x ++)
         {
-            int s = (is_bright[y%4] == is_bright[(y+1)%4]) ? -1 : 1;    /* points to the closest row having different exposure */
-            //#pragma omp parallel for
-            for (int x = 5; x < w-5; x ++)
+            int e_best = INT_MAX;
+            int d_best = d0;
+            int dmin = 0;
+            int dmax = COUNT(edge_directions)-1;
+            int search_area = 5;
+
+            /* only use high accuracy on the dark exposure where the bright ISO is overexposed */
+            if (!BRIGHT_ROW)
             {
-                int e_best = INT_MAX;
-                int d_best = d0;
-                int dmin = 0;
-                int dmax = COUNT(edge_directions)-1;
-                int search_area = 5;
-                
-                /* only use high accuracy on the dark exposure where the bright ISO is overexposed */
-                if (!BRIGHT_ROW)
+                /* interpolating bright exposure */
+                if (fullres_curve[raw_get_pixel32(x, y)] > fullres_thr)
                 {
-                    /* interpolating bright exposure */
-                    if (fullres_curve[raw_get_pixel32(x, y)] > fullres_thr)
-                    {
-                        /* no high accuracy needed, just interpolate vertically */
-                        not_shadow++;
-                        dmin = d0;
-                        dmax = d0;
-                    }
-                    else
-                    {
-                        /* deep shadows, unlikely to use fullres, so we need a good interpolation */
-                        deep_shadow++;
-                    }
-                }
-                else if (raw_get_pixel32(x, y) < (unsigned int)white_darkened)
-                {
-                    /* interpolating dark exposure, but we also have good data from the bright one */
-                    not_overexposed++;
+                    /* no high accuracy needed, just interpolate vertically */
+                    not_shadow++;
                     dmin = d0;
                     dmax = d0;
                 }
                 else
                 {
-                    /* interpolating dark exposure, but the bright one is clipped */
-                    semi_overexposed++;
+                    /* deep shadows, unlikely to use fullres, so we need a good interpolation */
+                    deep_shadow++;
                 }
-                
-                if (dmin == dmax)
+            }
+            else if (raw_get_pixel32(x, y) < (unsigned int)white_darkened)
+            {
+                /* interpolating dark exposure, but we also have good data from the bright one */
+                not_overexposed++;
+                dmin = d0;
+                dmax = d0;
+            }
+            else
+            {
+                /* interpolating dark exposure, but the bright one is clipped */
+                semi_overexposed++;
+            }
+
+            if (dmin == dmax)
+            {
+                d_best = dmin;
+            }
+            else
+            {
+                for (int d = dmin; d <= dmax; d++)
                 {
-                    d_best = dmin;
-                }
-                else
-                {
-                    for (int d = dmin; d <= dmax; d++)
+                    int e = 0;
+                    for (int j = -search_area; j <= search_area; j++)
                     {
-                        int e = 0;
-                        for (int j = -search_area; j <= search_area; j++)
-                        {
-                            int dx1 = edge_directions[d].ack.x + j;
-                            int dy1 = edge_directions[d].ack.y * s;
-                            int p1 = raw2ev[gray[x+dx1 + (y+dy1)*w]];
-                            int dx2 = edge_directions[d].a.x + j;
-                            int dy2 = edge_directions[d].a.y * s;
-                            int p2 = raw2ev[gray[x+dx2 + (y+dy2)*w]];
-                            int dx3 = edge_directions[d].b.x + j;
-                            int dy3 = edge_directions[d].b.y * s;
-                            int p3 = raw2ev[gray[x+dx3 + (y+dy3)*w]];
-                            int dx4 = edge_directions[d].bck.x + j;
-                            int dy4 = edge_directions[d].bck.y * s;
-                            int p4 = raw2ev[gray[x+dx4 + (y+dy4)*w]];
-                            e += ABS(p1-p2) + ABS(p2-p3) + ABS(p3-p4);
-                        }
-                        
-                        /* add a small penalty for diagonal directions */
-                        /* (the improvement should be significant in order to choose one of these) */
-                        e += ABS(d - d0) * EV_RESOLUTION/8;
-                        
-                        if (e < e_best)
-                        {
-                            e_best = e;
-                            d_best = d;
-                        }
+                        int dx1 = edge_directions[d].ack.x + j;
+                        int dy1 = edge_directions[d].ack.y * s;
+                        int p1 = raw2ev[gray[x+dx1 + (y+dy1)*w]];
+                        int dx2 = edge_directions[d].a.x + j;
+                        int dy2 = edge_directions[d].a.y * s;
+                        int p2 = raw2ev[gray[x+dx2 + (y+dy2)*w]];
+                        int dx3 = edge_directions[d].b.x + j;
+                        int dy3 = edge_directions[d].b.y * s;
+                        int p3 = raw2ev[gray[x+dx3 + (y+dy3)*w]];
+                        int dx4 = edge_directions[d].bck.x + j;
+                        int dy4 = edge_directions[d].bck.y * s;
+                        int p4 = raw2ev[gray[x+dx4 + (y+dy4)*w]];
+                        e += ABS(p1-p2) + ABS(p2-p3) + ABS(p3-p4);
+                    }
+
+                    /* add a small penalty for diagonal directions */
+                    /* (the improvement should be significant in order to choose one of these) */
+                    e += ABS(d - d0) * EV_RESOLUTION/8;
+
+                    if (e < e_best)
+                    {
+                        e_best = e;
+                        d_best = d;
                     }
                 }
-                
-                edge_direction[x + y*w] = d_best;
             }
-        }
-#ifndef STDOUT_SILENT
-        printf("Semi-overexposed: %.02f%%\n", semi_overexposed * 100.0 / (semi_overexposed + not_overexposed));
-        printf("Deep shadows    : %.02f%%\n", deep_shadow * 100.0 / (deep_shadow + not_shadow));
-#endif
-        //~ printf("Actual interpolation...\n");
-        
-        //#pragma omp parallel for
-        for (int y = 2; y < h-2; y ++)
-        {
-            uint32_t* native = BRIGHT_ROW ? bright : dark;
-            uint32_t* interp = BRIGHT_ROW ? dark : bright;
-            int is_rg = (y % 2 == 0); /* RG or GB? */
-            int s = (is_bright[y%4] == is_bright[(y+1)%4]) ? -1 : 1;    /* points to the closest row having different exposure */
-            
-            //~ printf("Interpolating %s line %d from [near] %d (squeezed %d) and [far] %d (squeezed %d)\n", BRIGHT_ROW ? "BRIGHT" : "DARK", y, y+s, yh_near, y-2*s, yh_far);
-            
-            //#pragma omp parallel for
-            for (int x = 2; x < w-2; x += 2)
-            {
-                for (int k = 0; k < 2; k++, x++)
-                {
-                    float** plane = is_rg ? (x%2 == 0 ? red   : green)
-                    : (x%2 == 0 ? green : blue );
-                    
-                    int dir = edge_direction[x + y*w];
-                    
-                    /* vary the interpolation direction and average the result (reduces aliasing) */
-                    int pi0 = edge_interp(plane, squeezed, raw2ev, dir, x, y, s);
-                    int pip = edge_interp(plane, squeezed, raw2ev, MIN(dir+1, COUNT(edge_directions)-1), x, y, s);
-                    int pim = edge_interp(plane, squeezed, raw2ev, MAX(dir-1,0), x, y, s);
-                    
-                    interp[x   + y * w] = ev2raw[(2*pi0+pip+pim)/4];
-                    native[x   + y * w] = raw_get_pixel32(x, y);
-                }
-                x -= 2;
-            }
+
+            edge_direction[x + y*w] = d_best;
         }
     }
-    UNLOCK(ev2raw_mutex)
+#ifndef STDOUT_SILENT
+    printf("Semi-overexposed: %.02f%%\n", semi_overexposed * 100.0 / (semi_overexposed + not_overexposed));
+    printf("Deep shadows    : %.02f%%\n", deep_shadow * 100.0 / (deep_shadow + not_shadow));
+#endif
+    //~ printf("Actual interpolation...\n");
+
+    //#pragma omp parallel for
+#pragma omp parallel for schedule(static) default(none) shared(w, red, green, edge_direction, squeezed, blue, bright,dark, is_bright, h, raw2ev,ev2raw,raw_info,raw_buffer_32)
+    for (int y = 2; y < h-2; y ++)
+    {
+        uint32_t* native = BRIGHT_ROW ? bright : dark;
+        uint32_t* interp = BRIGHT_ROW ? dark : bright;
+        int is_rg = (y % 2 == 0); /* RG or GB? */
+        int s = (is_bright[y%4] == is_bright[(y+1)%4]) ? -1 : 1;    /* points to the closest row having different exposure */
+
+        //~ printf("Interpolating %s line %d from [near] %d (squeezed %d) and [far] %d (squeezed %d)\n", BRIGHT_ROW ? "BRIGHT" : "DARK", y, y+s, yh_near, y-2*s, yh_far);
+
+        //#pragma omp parallel for
+        for (int x = 2; x < w-2; x += 2)
+        {
+            for (int k = 0; k < 2; k++, x++)
+            {
+                float** plane = is_rg ? (x%2 == 0 ? red   : green)
+                : (x%2 == 0 ? green : blue );
+
+                int dir = edge_direction[x + y*w];
+
+                /* vary the interpolation direction and average the result (reduces aliasing) */
+                int pi0 = edge_interp(plane, squeezed, raw2ev, dir, x, y, s);
+                int pip = edge_interp(plane, squeezed, raw2ev, MIN(dir+1, COUNT(edge_directions)-1), x, y, s);
+                int pim = edge_interp(plane, squeezed, raw2ev, MAX(dir-1,0), x, y, s);
+
+                interp[x   + y * w] = ev2raw[(2*pi0+pip+pim)/4];
+                native[x   + y * w] = raw_get_pixel32(x, y);
+            }
+            x -= 2;
+        }
+    }
     
     //#pragma omp parallel for
     for (int i = 0; i < h; i++)
@@ -1256,66 +1287,63 @@ static inline void mean23_interpolate(struct raw_info raw_info, uint32_t * raw_b
     /* handle sub-black values (negative EV) */
     int* ev2raw = ev2raw_0 + 10*EV_RESOLUTION;
     
-    LOCK(ev2raw_mutex)
+    if(black != previous_black)
     {
-        if(black != previous_black)
-        {
-            build_ev2raw_lut(raw2ev, ev2raw_0, black, white);
-            previous_black = black;
-        }
+        build_ev2raw_lut(raw2ev, ev2raw_0, black, white);
+        previous_black = black;
+    }
+    //#pragma omp parallel for
+#pragma omp parallel for schedule(static) default(none) shared(is_bright, dark, bright, white_darkened, h, w, raw_info, raw_buffer_32, black, white, raw2ev, ev2raw)
+    for (int y = 2; y < h-2; y ++)
+    {
+        uint32_t* native = BRIGHT_ROW ? bright : dark;
+        uint32_t* interp = BRIGHT_ROW ? dark : bright;
+        int is_rg = (y % 2 == 0); /* RG or GB? */
+        int white = !BRIGHT_ROW ? white_darkened : raw_info.white_level;
+
         //#pragma omp parallel for
-        #pragma omp parallel for schedule(static) default(none) shared(is_bright, dark, bright, white_darkened, h, w, raw_info, raw_buffer_32, black, white, raw2ev, ev2raw)
-        for (int y = 2; y < h-2; y ++)
+        for (int x = 2; x < w-3; x += 2)
         {
-            uint32_t* native = BRIGHT_ROW ? bright : dark;
-            uint32_t* interp = BRIGHT_ROW ? dark : bright;
-            int is_rg = (y % 2 == 0); /* RG or GB? */
-            int white = !BRIGHT_ROW ? white_darkened : raw_info.white_level;
-            
-            //#pragma omp parallel for
-            for (int x = 2; x < w-3; x += 2)
+
+            /* red/blue: interpolate from (x,y+2) and (x,y-2) */
+            /* green: interpolate from (x+1,y+1),(x-1,y+1),(x,y-2) or (x+1,y-1),(x-1,y-1),(x,y+2), whichever has the correct brightness */
+
+            int s = (is_bright[y%4] == is_bright[(y+1)%4]) ? -1 : 1;
+
+            if (is_rg)
             {
-                
-                /* red/blue: interpolate from (x,y+2) and (x,y-2) */
-                /* green: interpolate from (x+1,y+1),(x-1,y+1),(x,y-2) or (x+1,y-1),(x-1,y-1),(x,y+2), whichever has the correct brightness */
-                
-                int s = (is_bright[y%4] == is_bright[(y+1)%4]) ? -1 : 1;
-                
-                if (is_rg)
-                {
-                    int ra = raw_get_pixel32(x, y-2);
-                    int rb = raw_get_pixel32(x, y+2);
-                    int ri = mean2(raw2ev[ra], raw2ev[rb], raw2ev[white], 0);
-                    
-                    int ga = raw_get_pixel32(x+1+1, y+s);
-                    int gb = raw_get_pixel32(x+1-1, y+s);
-                    int gc = raw_get_pixel32(x+1, y-2*s);
-                    int gi = mean3(raw2ev[ga], raw2ev[gb], raw2ev[gc], raw2ev[white], 0);
-                    
-                    interp[x   + y * w] = ev2raw[ri];
-                    interp[x+1 + y * w] = ev2raw[gi];
-                }
-                else
-                {
-                    int ba = raw_get_pixel32(x+1  , y-2);
-                    int bb = raw_get_pixel32(x+1  , y+2);
-                    int bi = mean2(raw2ev[ba], raw2ev[bb], raw2ev[white], 0);
-                    
-                    int ga = raw_get_pixel32(x+1, y+s);
-                    int gb = raw_get_pixel32(x-1, y+s);
-                    int gc = raw_get_pixel32(x, y-2*s);
-                    int gi = mean3(raw2ev[ga], raw2ev[gb], raw2ev[gc], raw2ev[white], 0);
-                    
-                    interp[x   + y * w] = ev2raw[gi];
-                    interp[x+1 + y * w] = ev2raw[bi];
-                }
-                
-                native[x   + y * w] = raw_get_pixel32(x, y);
-                native[x+1 + y * w] = raw_get_pixel32(x+1, y);
+                int ra = raw_get_pixel32(x, y-2);
+                int rb = raw_get_pixel32(x, y+2);
+                int ri = mean2(raw2ev[ra], raw2ev[rb], raw2ev[white], 0);
+
+                int ga = raw_get_pixel32(x+1+1, y+s);
+                int gb = raw_get_pixel32(x+1-1, y+s);
+                int gc = raw_get_pixel32(x+1, y-2*s);
+                int gi = mean3(raw2ev[ga], raw2ev[gb], raw2ev[gc], raw2ev[white], 0);
+
+                interp[x   + y * w] = ev2raw[ri];
+                interp[x+1 + y * w] = ev2raw[gi];
             }
+            else
+            {
+                int ba = raw_get_pixel32(x+1  , y-2);
+                int bb = raw_get_pixel32(x+1  , y+2);
+                int bi = mean2(raw2ev[ba], raw2ev[bb], raw2ev[white], 0);
+
+                int ga = raw_get_pixel32(x+1, y+s);
+                int gb = raw_get_pixel32(x-1, y+s);
+                int gc = raw_get_pixel32(x, y-2*s);
+                int gi = mean3(raw2ev[ga], raw2ev[gb], raw2ev[gc], raw2ev[white], 0);
+
+                interp[x   + y * w] = ev2raw[gi];
+                interp[x+1 + y * w] = ev2raw[bi];
+            }
+
+            native[x   + y * w] = raw_get_pixel32(x, y);
+            native[x+1 + y * w] = raw_get_pixel32(x+1, y);
         }
     }
-    UNLOCK(ev2raw_mutex)
+
 }
 
 static inline void border_interpolate(struct raw_info raw_info, uint32_t * raw_buffer_32, uint32_t* dark, uint32_t* bright, int * is_bright)
@@ -1379,7 +1407,7 @@ static inline void fullres_reconstruction(struct raw_info raw_info, uint32_t * f
     printf("Full-res reconstruction...\n");
 #endif
     //#pragma omp parallel for collapse(2)
-    #pragma omp parallel for schedule(static) default(none) shared(fullres, offset_threshold, is_bright, dark, bright, white_darkened, h, w)
+#pragma omp parallel for schedule(static) default(none) shared(fullres, offset_threshold, is_bright, dark, bright, white_darkened, h, w)
     for (int y = 0; y < h; y ++)
     {
         for (int x = 0; x < w; x ++)
@@ -1403,7 +1431,7 @@ static inline void fullres_reconstruction(struct raw_info raw_info, uint32_t * f
     }
 }
 
-static inline void build_alias_map(struct raw_info raw_info, uint16_t* alias_map, uint32_t* fullres_smooth, uint32_t* halfres_smooth, uint32_t* bright, int dark_noise, int black, int * raw2ev)
+static inline void build_alias_map(struct raw_info raw_info, uint16_t* alias_map, uint32_t* fullres_smooth, uint32_t* halfres_smooth, uint32_t* bright, int dark_noise, int black, int * raw2ev/*, double *fullres_curve*/)
 {
     if(!alias_map) return;
     
@@ -1602,7 +1630,7 @@ static inline int mix_images(struct raw_info raw_info, uint32_t* fullres, uint32
     double * mix_curve = malloc((1<<20) * sizeof(double));
     
     //#pragma omp parallel for
-    #pragma omp parallel for schedule(static) default(none) shared(corr_ev, max_ev, overlap, black, mix_curve)
+#pragma omp parallel for schedule(static) default(none) shared(corr_ev, max_ev, overlap, black, mix_curve)
     for (int i = 0; i < 1<<20; i++)
     {
         double ev = log2(MAX(i/64.0 - black/64.0, 1)) + corr_ev;
@@ -1611,72 +1639,61 @@ static inline int mix_images(struct raw_info raw_info, uint32_t* fullres, uint32
         mix_curve[i] = k;
     }
 
-
     /* for fast EV - raw conversion */
     static int raw2ev[1<<20];   /* EV x EV_RESOLUTION */
     static int ev2raw_0[24*EV_RESOLUTION];
     static uint32_t previous_black = -1;
-    
+
     /* handle sub-black values (negative EV) */
     int* ev2raw = ev2raw_0 + 10*EV_RESOLUTION;
-    
-    //LOCK(ev2raw_mutex)
+
+    if(black != previous_black)
     {
-        if(black != previous_black)
-        {
-            build_ev2raw_lut(raw2ev, ev2raw_0, black, white);
-            previous_black = black;
-        }
-        
-        //#pragma omp parallel for collapse(2)
-        #pragma omp parallel for schedule(static) default(none) shared(bright, dark, h, w, raw2ev, ev2raw, mix_curve, halfres)
-        for (int y = 0; y < h; y ++)
-        {
-            for (int x = 0; x < w; x ++)
-            {
-                /* bright and dark source pixels  */
-                /* they may be real or interpolated */
-                /* they both have the same brightness (they were adjusted before this loop), so we are ready to mix them */
-                int b = bright[x + y*w];
-                int d = dark[x + y*w];
-                
-                /* go from linear to EV space */
-                int bev = raw2ev[b];
-                int dev = raw2ev[d];
-                
-                /* blending factor */
-                double k = COERCE(mix_curve[b & 0xFFFFF], 0, 1);
-                
-                /* mix bright and dark exposures */
-                int mixed = bev * (1-k) + dev * k;
-                halfres[x + y*w] = ev2raw[mixed];
-            }
-        }
-        if (chroma_smooth_method)
-        {
-#ifndef STDOUT_SILENT
-            printf("Chroma smoothing...\n");
-#endif
-//            memcpy(fullres_smooth, fullres, w * h * sizeof(uint32_t));
-//            memcpy(halfres_smooth, halfres, w * h * sizeof(uint32_t));
+        build_ev2raw_lut(raw2ev, ev2raw_0, black, white);
+        previous_black = black;
+    }
 
-            if (use_fullres)
-            {
-                fullres_smooth = malloc(w * h * sizeof(uint32_t));
-                memcpy(fullres_smooth, fullres, w * h * sizeof(uint32_t));
-            }
-
-            halfres_smooth = malloc(w * h * sizeof(uint32_t));
-            memcpy(halfres_smooth, halfres, w * h * sizeof(uint32_t));
-            hdr_chroma_smooth(raw_info, fullres, fullres_smooth, chroma_smooth_method, raw2ev, ev2raw);
-            hdr_chroma_smooth(raw_info, halfres, halfres_smooth, chroma_smooth_method, raw2ev, ev2raw);
-        }
-        if(alias_map)
+    //#pragma omp parallel for collapse(2)
+#pragma omp parallel for schedule(static) default(none) shared(bright, dark, h, w, raw2ev, ev2raw, mix_curve, halfres)
+    for (int y = 0; y < h; y ++)
+    {
+        for (int x = 0; x < w; x ++)
         {
-            build_alias_map(raw_info, alias_map, fullres_smooth, halfres_smooth, bright, dark_noise, black, raw2ev);
+            /* bright and dark source pixels  */
+            /* they may be real or interpolated */
+            /* they both have the same brightness (they were adjusted before this loop), so we are ready to mix them */
+            int b = bright[x + y*w];
+            int d = dark[x + y*w];
+
+            /* go from linear to EV space */
+            int bev = raw2ev[b];
+            int dev = raw2ev[d];
+
+            /* blending factor */
+            double k = COERCE(mix_curve[b & 0xFFFFF], 0, 1);
+
+            /* mix bright and dark exposures */
+            int mixed = bev * (1-k) + dev * k;
+            halfres[x + y*w] = ev2raw[mixed];
         }
     }
-    //UNLOCK(ev2raw_mutex)
+
+    if (chroma_smooth_method)
+    {
+        if (use_fullres)
+        {
+            memcpy(fullres_smooth, fullres, w * h * sizeof(uint32_t));
+            hdr_chroma_smooth(raw_info, fullres, fullres_smooth, chroma_smooth_method, raw2ev, ev2raw);
+
+        }
+        memcpy(halfres_smooth, halfres, w * h * sizeof(uint32_t));
+        hdr_chroma_smooth(raw_info, halfres, halfres_smooth, chroma_smooth_method, raw2ev, ev2raw);
+    }
+
+    if(alias_map)
+    {
+        build_alias_map(raw_info, alias_map, fullres_smooth, halfres_smooth, bright, dark_noise, black, raw2ev/*, fullres_curve*/);
+    }
     
     //#pragma omp parallel for collapse(2)
     for (int y = 0; y < h; y ++)
@@ -1712,7 +1729,7 @@ static inline int mix_images(struct raw_info raw_info, uint32_t* fullres, uint32
     
     free(over_aux); over_aux = 0;
     free(mix_curve);
-    
+
     return 1;
 }
 
@@ -1829,6 +1846,458 @@ static inline void convert_20_to_16bit(struct raw_info raw_info, uint16_t * imag
             raw_set_pixel_20to16_rand(x, y, raw_buffer_32[x + y*w]);
 }
 
+
+/**
+ * Fix vertical stripes (banding) from 5D Mark III (and maybe others).
+ *
+ * These stripes are periodic, they repeat every 8 pixels.
+ * It looks like some columns have different luma amplification;
+ * correction factors are somewhere around 0.98 - 1.02, maybe camera-specific, maybe depends on
+ * certain settings, I have no idea. So, this fix compares luma values within one pixel block,
+ * computes the correction factors (using median to reject outliers) and decides
+ * whether to apply the correction or not.
+ *
+ * For speed reasons:
+ * - Correction factors are computed from the first frame only.
+ * - Only channels with error greater than 0.2% are corrected.
+ */
+#define FIXP_ONE 65536
+#define FIXP_RANGE 65536
+
+static int stripes_coeffs[8] = {0};
+static int stripes_correction_needed = 0;
+
+#define PA ((int)(p->a))
+#define PB ((int)(p->b_lo | (p->b_hi << 12)))
+#define PC ((int)(p->c_lo | (p->c_hi << 10)))
+#define PD ((int)(p->d_lo | (p->d_hi << 8)))
+#define PE ((int)(p->e_lo | (p->e_hi << 6)))
+#define PF ((int)(p->f_lo | (p->f_hi << 4)))
+#define PG ((int)(p->g_lo | (p->g_hi << 2)))
+#define PH ((int)(p->h))
+
+#define SET_PA(x) { int v = (x); p->a = v; }
+#define SET_PB(x) { int v = (x); p->b_lo = v; p->b_hi = v >> 12; }
+#define SET_PC(x) { int v = (x); p->c_lo = v; p->c_hi = v >> 10; }
+#define SET_PD(x) { int v = (x); p->d_lo = v; p->d_hi = v >> 8; }
+#define SET_PE(x) { int v = (x); p->e_lo = v; p->e_hi = v >> 6; }
+#define SET_PF(x) { int v = (x); p->f_lo = v; p->f_hi = v >> 4; }
+#define SET_PG(x) { int v = (x); p->g_lo = v; p->g_hi = v >> 2; }
+#define SET_PH(x) { int v = (x); p->h = v; }
+
+#define RAW_MUL(p, x) ((((int)(p) - raw_info.black_level) * (int)(x) / FIXP_ONE) + raw_info.black_level)
+#define F2H(ev) COERCE((int)(FIXP_RANGE/2 + ev * FIXP_RANGE/2), 0, FIXP_RANGE-1)
+#define H2F(x) ((double)((x) - FIXP_RANGE/2) / (FIXP_RANGE/2))
+
+
+static void add_pixel(int hist[8][FIXP_RANGE], int num[8], int offset, int pa, int pb, struct raw_info raw_info)
+{
+    int a = pa;
+    int b = pb;
+
+    if (MIN(a,b) < 32)
+        return; /* too noisy */
+
+    if (MAX(a,b) > raw_info.white_level / 1.1)
+        return; /* too bright */
+
+    /**
+     * compute correction factor for b, that makes it as bright as a
+     *
+     * first, work around quantization error (which causes huge spikes on histogram)
+     * by adding a small random noise component
+     * e.g. if raw value is 13, add some uniformly distributed noise,
+     * so the value will be between -12.5 and 13.5.
+     *
+     * this removes spikes on the histogram, thus canceling bias towards "round" values
+     */
+    double af = a + (rand() % 1024) / 1024.0 - 0.5;
+    double bf = b + (rand() % 1024) / 1024.0 - 0.5;
+    double factor = af / bf;
+    double ev = log2(factor);
+
+    /**
+     * add to histogram (for computing the median)
+     */
+    int weight = log2(a);
+    hist[offset][F2H(ev)] += weight;
+    num[offset] += weight;
+}
+
+
+static void detect_vertical_stripes_coeffs(struct raw_info raw_info, uint32_t * image_data, int force_correction)
+{
+    static int hist[8][FIXP_RANGE];
+    static int num[8];
+
+    memset(hist, 0, sizeof(hist));
+    memset(num, 0, sizeof(num));
+
+    /* compute 7 histograms: b./a, c./a ... h./a */
+    /* that is, adjust all columns to make them as bright as a */
+    /* process green pixels only, assuming the image is RGGB */
+
+    typedef raw_pixblock_14 raw_pixblock; //TODO: should we change depending on the source bits to raw_pixblock_12 or raw_pixblock_10?
+    raw_pixblock * row;
+    for (row = (raw_pixblock*)image_data; (void*)row < (void*)image_data + raw_info.pitch * raw_info.height; row += 2 * raw_info.pitch / sizeof(raw_pixblock))
+    {
+        /* first line is RG */
+        raw_pixblock * rg;
+        for (rg = row; (void*)rg < (void*)row + raw_info.pitch - sizeof(raw_pixblock); rg++)
+        {
+            /* next line is GB */
+            raw_pixblock * gb = rg + raw_info.pitch / sizeof(raw_pixblock);
+
+            raw_pixblock * p = rg;
+            int pb = PB - raw_info.black_level;
+            int pd = PD - raw_info.black_level;
+            int pf = PF - raw_info.black_level;
+            int ph = PH - raw_info.black_level;
+            p++;
+            int pb2 = PB - raw_info.black_level;
+            int pd2 = PD - raw_info.black_level;
+            int pf2 = PF - raw_info.black_level;
+            int ph2 = PH - raw_info.black_level;
+            p = gb;
+            //int pa = PA - raw_info.black_level;
+            int pc = PC - raw_info.black_level;
+            int pe = PE - raw_info.black_level;
+            int pg = PG - raw_info.black_level;
+            p++;
+            int pa2 = PA - raw_info.black_level;
+            int pc2 = PC - raw_info.black_level;
+            int pe2 = PE - raw_info.black_level;
+            int pg2 = PG - raw_info.black_level;
+
+            /**
+             * verification: introducing strong banding in one column
+             * should not affect the coefficients from the other columns
+             **/
+
+            //~ pe = pe * 1.1;
+            //~ pe2 = pe2 * 1.1;
+
+            /**
+             * Make all columns as bright as a2
+             * use linear interpolation, so when processing column b, for example,
+             * let bi = (b * 1 + b2 * 7) / (7+1)
+             * let ei = (e * 4 + e2 * 4) / (4+4)
+             * and so on, to avoid getting tricked by smooth gradients.
+             */
+
+            add_pixel(hist, num, 1, pa2, (pb * 1 + pb2 * 7) / 8, raw_info);
+            add_pixel(hist, num, 2, pa2, (pc * 2 + pc2 * 6) / 8, raw_info);
+            add_pixel(hist, num, 3, pa2, (pd * 3 + pd2 * 5) / 8, raw_info);
+            add_pixel(hist, num, 4, pa2, (pe * 4 + pe2 * 4) / 8, raw_info);
+            add_pixel(hist, num, 5, pa2, (pf * 5 + pf2 * 3) / 8, raw_info);
+            add_pixel(hist, num, 6, pa2, (pg * 6 + pg2 * 2) / 8, raw_info);
+            add_pixel(hist, num, 7, pa2, (ph * 7 + ph2 * 1) / 8, raw_info);
+        }
+    }
+
+    int j,k;
+
+    int max[8] = {0};
+    for (j = 0; j < 8; j++)
+        for (k = 1; k < FIXP_RANGE-1; k++)
+            max[j] = MAX(max[j], hist[j][k]);
+
+    /* compute the median correction factor (this will reject outliers) */
+    for (j = 0; j < 8; j++)
+    {
+        if (num[j] < raw_info.frame_size / 128) continue;
+        int t = 0;
+        for (k = 0; k < FIXP_RANGE; k++)
+        {
+            t += hist[j][k];
+            if (t >= num[j]/2)
+            {
+                int c = pow(2, H2F(k)) * FIXP_ONE;
+                stripes_coeffs[j] = c;
+                break;
+            }
+        }
+    }
+
+#if 0
+    /* debug graphs */
+    FILE* f = fopen("raw2dng.m", "w");
+    fprintf(f, "h = {}; x = {}; c = \"rgbcmy\"; \n");
+    for (j = 2; j < 8; j++)
+    {
+        fprintf(f, "h{end+1} = [");
+        for (k = 1; k < FIXP_RANGE-1; k++)
+        {
+            fprintf(f, "%d ", hist[j][k]);
+        }
+        fprintf(f, "];\n");
+
+        fprintf(f, "x{end+1} = [");
+        for (k = 1; k < FIXP_RANGE-1; k++)
+        {
+            fprintf(f, "%f ", H2F(k) );
+        }
+        fprintf(f, "];\n");
+        fprintf(f, "plot(log2(%d/%d) + [0 0], [0 %d], ['*-' c(%d)]); hold on;\n", stripes_coeffs[j], FIXP_ONE, max[j], j-1);
+    }
+    fprintf(f, "for i = 1:6, plot(x{i}, h{i}, c(i)); hold on; end;");
+    fprintf(f, "axis([-0.05 0.05])");
+    fclose(f);
+    system("octave-cli --persist raw2dng.m");
+#endif
+
+    stripes_coeffs[0] = FIXP_ONE;
+
+    /* do we really need stripe correction, or it won't be noticeable? or maybe it's just computation error? */
+    stripes_correction_needed = 0;
+    for (j = 0; j < 8; j++)
+    {
+        double c = (double)stripes_coeffs[j] / FIXP_ONE;
+        if (c < 0.998 || c > 1.002)
+            stripes_correction_needed = 1;
+    }
+
+    if (stripes_correction_needed || force_correction)
+    {
+        printf("\n\nVertical stripes correction:\n");
+        for (j = 0; j < 8; j++)
+        {
+            if (stripes_coeffs[j])
+                printf("  %.5f", (double)stripes_coeffs[j] / FIXP_ONE);
+            else
+                printf("    1  ");
+        }
+        printf("\n");
+    }
+}
+
+static void apply_vertical_stripes_correction(struct raw_info raw_info, uint32_t * image_data)
+{
+    /**
+     * inexact white level will result in banding in highlights, especially if some channels are clipped
+     *
+     * so... we'll try to use a better estimation of white level *for this particular purpose*
+     * start with a gross under-estimation, then consider white = max(all pixels)
+     * just in case the exif one is way off
+     * reason:
+     *   - if there are no pixels above the true white level, it shouldn't hurt;
+     *     worst case, the brightest pixel(s) will be underexposed by 0.1 EV or so
+     *   - if there are, we will choose the true white level
+     */
+
+    int white = raw_info.white_level * 2 / 3;
+
+    typedef raw_pixblock_14 raw_pixblock; //TODO: should we change depending on the source bits to raw_pixblock_12 or raw_pixblock_10?
+    raw_pixblock * row;
+
+    for (row =image_data; (void*)row < (void*)image_data + raw_info.pitch * raw_info.height; row += raw_info.pitch / sizeof(raw_pixblock))
+    {
+        raw_pixblock * p;
+        for (p = row; (void*)p < (void*)row + raw_info.pitch; p++)
+        {
+            white = MAX(white, PA);
+            white = MAX(white, PB);
+            white = MAX(white, PC);
+            white = MAX(white, PD);
+            white = MAX(white, PE);
+            white = MAX(white, PF);
+            white = MAX(white, PG);
+            white = MAX(white, PH);
+        }
+    }
+
+    int black = raw_info.black_level;
+    for (row = image_data; (void*)row < (void*)image_data + raw_info.pitch * raw_info.height; row += raw_info.pitch / sizeof(raw_pixblock))
+    {
+        raw_pixblock * p;
+        for (p = row; (void*)p < (void*)row + raw_info.pitch; p++)
+        {
+            int pa = PA;
+            int pb = PB;
+            int pc = PC;
+            int pd = PD;
+            int pe = PE;
+            int pf = PF;
+            int pg = PG;
+            int ph = PH;
+
+            /**
+             * Thou shalt not exceed the white level (the exact one, not the exif one)
+             * otherwise you'll be blessed with banding instead of nice and smooth highlight recovery
+             *
+             * At very dark levels, you will introduce roundoff errors, so don't correct there
+             */
+
+            if (stripes_coeffs[0] && pa && pa < white && pa > black + 64) SET_PA(MIN(white, RAW_MUL(pa, stripes_coeffs[0])));
+            if (stripes_coeffs[1] && pb && pb < white && pa > black + 64) SET_PB(MIN(white, RAW_MUL(pb, stripes_coeffs[1])));
+            if (stripes_coeffs[2] && pc && pc < white && pa > black + 64) SET_PC(MIN(white, RAW_MUL(pc, stripes_coeffs[2])));
+            if (stripes_coeffs[3] && pd && pd < white && pa > black + 64) SET_PD(MIN(white, RAW_MUL(pd, stripes_coeffs[3])));
+            if (stripes_coeffs[4] && pe && pe < white && pa > black + 64) SET_PE(MIN(white, RAW_MUL(pe, stripes_coeffs[4])));
+            if (stripes_coeffs[5] && pf && pf < white && pa > black + 64) SET_PF(MIN(white, RAW_MUL(pf, stripes_coeffs[5])));
+            if (stripes_coeffs[6] && pg && pg < white && pa > black + 64) SET_PG(MIN(white, RAW_MUL(pg, stripes_coeffs[6])));
+            if (stripes_coeffs[7] && ph && ph < white && pa > black + 64) SET_PH(MIN(white, RAW_MUL(ph, stripes_coeffs[7])));
+        }
+    }
+}
+void fix_vertical_stripes_diso(struct raw_info raw_info, uint32_t * image_data, int force_correction)
+{
+    /* for speed: only detect correction factors from the first frame */
+    static int first_time = 1;
+    if (first_time)
+    {
+        detect_vertical_stripes_coeffs(raw_info, image_data, force_correction);
+        first_time = 0;
+    }
+
+    apply_vertical_stripes_correction(raw_info, image_data);
+}
+
+static void find_and_fix_bad_pixels(struct raw_info raw_info, uint32_t * raw_buffer_32, int dark_noise, int bright_noise, int* raw2ev, int* ev2raw, int fix_bad_pixels_dual, int * is_bright)
+{
+    int w = raw_info.width;
+    int h = raw_info.height;
+
+    int black = raw_info.black_level;
+#ifndef STDOUT_SILENT
+    printf("Looking for hot/cold pixels...\n");
+#endif
+
+
+    /* hot pixel map */
+    uint32_t* hotpixel = malloc(w * h * sizeof(uint32_t));
+    memset(hotpixel, 0, w * h * sizeof(uint32_t));
+
+    int hot_pixels = 0;
+    int cold_pixels = 0;
+
+    /* really dark pixels (way below the black level) are probably noise */
+    /* there might be dark pixels not that much below the black level, but they need further checking */
+    int cold_thr = MAX(0, black - dark_noise*8);
+    int maybe_cold_thr = black + dark_noise*2;
+
+    for (int y = 6; y < h-6; y ++)
+    {
+        for (int x = 6; x < w-6; x ++)
+        {
+            int p = raw_get_pixel20(x, y);
+
+            int is_hot = 0;
+            int is_cold = (p < cold_thr);
+            int maybe_cold = (p < maybe_cold_thr);
+
+            /* we don't have no hot pixels on the bright exposure */
+            /* but we may have cold pixels */
+            if (!BRIGHT_ROW || maybe_cold)
+            {
+                /* let's look at the neighbours: is this pixel clearly brigher? (isolated) */
+                int neighbours[100];
+                int k = 0;
+                int fc0 = FC(x, y);
+                int b0 = is_bright[y%4];
+                int max = 0;
+                for (int i = -4; i <= 4; i++)
+                {
+                    /* only look at pixels of the same brightness */
+                    if (is_bright[(y+i)%4] != b0)
+                        continue;
+
+                    for (int j = -4; j <= 4; j++)
+                    {
+                        if (i == 0 && j == 0)
+                            continue;
+
+                        /* only look at pixels of the same color */
+                        if (FC(x+j, y+i) != fc0)
+                            continue;
+
+                        int p = raw_get_pixel20(x+j, y+i);
+                        neighbours[k++] = -p;
+                        max = MAX(max, p);
+                    }
+
+                    /* this difference will only get lower, so if it's already too low (see below), stop scanning */
+                    /* (don't stop scanning if the pixel is cold, since we'll need this info to interpolate it) */
+                    if (raw2ev[p] - raw2ev[max] <= EV_RESOLUTION && !maybe_cold)
+                        break;
+                }
+
+                is_hot = (raw2ev[p] - raw2ev[max] > EV_RESOLUTION) && (max > black + 8*dark_noise);
+
+                if (maybe_cold)
+                {
+                    /* there may be cold pixels very close to black level */
+                    /* heuristic: if it's much darker than the brightest neighbour, it's a cold pixel */
+                    is_cold |= (raw2ev[max] - raw2ev[p] > EV_RESOLUTION * 10);
+                }
+
+                if (fix_bad_pixels_dual == 2)    /* aggressive */
+                {
+                    int third_max = -kth_smallest_int(neighbours, k, 2);
+                    is_hot = ((raw2ev[p] - raw2ev[max] > EV_RESOLUTION/4) && (max > black + 8*dark_noise))
+                          || (raw2ev[p] - raw2ev[third_max] > EV_RESOLUTION/2);
+                }
+
+                if (is_hot)
+                {
+                    hot_pixels++;
+                    hotpixel[x + y*w] = -kth_smallest_int(neighbours, k, 2);
+                }
+
+                if (is_cold)
+                {
+                    cold_pixels++;
+                    hotpixel[x + y*w] = -median_int_wirth(neighbours, k);
+                }
+            }
+        }
+    }
+
+    /* apply the correction */
+    for (int y = 0; y < h; y ++)
+        for (int x = 0; x < w; x ++)
+            if (hotpixel[x + y*w])
+                raw_set_pixel20(x, y, hotpixel[x + y*w]);
+
+#ifndef STDOUT_SILENT
+    if (hot_pixels)
+        printf("Hot pixels      : %d\n", hot_pixels);
+
+    if (cold_pixels)
+        printf("Cold pixels     : %d\n", cold_pixels);
+#endif
+
+
+    free(hotpixel);
+}
+
+
+//TODO, add soft film curve
+/* soft-film curve from ufraw-mod */
+//static double soft_film(double raw, double exposure, int in_black, int in_white, int out_black, int out_white)
+//{
+//    double a = MAX(exposure - 1, 1e-5);
+//    if (raw > in_black)
+//    {
+//        /* at low values, force the derivative equal to exposure (in linear units) */
+//        /* at high values, map in_white to out_white (which normally happens at exposure=1) */
+//        double x = (raw - in_black) / (in_white - in_black);
+//        return (1.0 - 1.0/(1.0 + a*x)) / (1.0 - 1.0/(1.0 + a)) * (out_white - out_black) + out_black;
+//    }
+//    else
+//    {
+//        /* linear extrapolation below black */
+//        return COERCE((raw - in_black) * exposure / (in_white - in_black) * (out_white - out_black) + out_black, 0, out_white);
+//    }
+//}
+
+//static int soft_film_bakedwb(double raw, double exposure, int in_black, int in_white, int out_black, int out_white, double wb, double max_wb)
+//{
+//    double raw_baked = (raw - in_black) * wb / max_wb + in_black;
+//    double raw_soft = soft_film(raw_baked, exposure * max_wb, in_black, in_white, out_black, out_white);
+//    double raw_adjusted = (raw_soft - out_black) / wb + out_black;
+//    return round(raw_adjusted + fast_randn05());
+//}
+
 int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int interp_method, int use_alias_map, int use_fullres, int chroma_smooth_method)
 {
     int w = raw_info.width;
@@ -1867,6 +2336,43 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     white_bright *= 64;
     raw_info.white_level = white;
     
+
+//    /* for fast EV - raw conversion */
+//    static int raw2ev[1<<20];   /* EV x EV_RESOLUTION */
+//    static int ev2raw_0[24*EV_RESOLUTION];
+
+//    /* handle sub-black values (negative EV) */
+//    int* ev2raw = ev2raw_0 + 10*EV_RESOLUTION;
+
+//    for (int i = 0; i < 1<<20; i++)
+//    {
+//        double signal = MAX(i/64.0 - black/64.0, -1023);
+//        if (signal > 0)
+//            raw2ev[i] = (int)round(log2(1+signal) * EV_RESOLUTION);
+//        else
+//            raw2ev[i] = -(int)round(log2(1-signal) * EV_RESOLUTION);
+//    }
+
+//    for (int i = -10*EV_RESOLUTION; i < 0; i++)
+//    {
+//        ev2raw[i] = COERCE(black+64 - round(64*pow(2, ((double)-i/EV_RESOLUTION))), 0, black);
+//    }
+
+//    for (int i = 0; i < 14*EV_RESOLUTION; i++)
+//    {
+//        ev2raw[i] = COERCE(black-64 + round(64*pow(2, ((double)i/EV_RESOLUTION))), black, (1<<20)-1);
+
+//        if (i >= raw2ev[white])
+//        {
+//            ev2raw[i] = MAX(ev2raw[i], white);
+//        }
+//    }
+
+//    /* keep "bad" pixels, if any */
+//    ev2raw[raw2ev[0]] = 0;
+//    ev2raw[raw2ev[0]] = 0;
+
+
     double noise_std[4];
     double dark_noise, bright_noise, dark_noise_ev, bright_noise_ev;
     double noise_avg = compute_noise(raw_info, image_data, noise_std, &dark_noise, &bright_noise, &dark_noise_ev, &bright_noise_ev);
@@ -1916,6 +2422,26 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
         memset(alias_map, 0, w * h * sizeof(uint16_t));
     }
     
+    /* fullres mixing curve */
+    /* fullres mixing curve */
+    static double fullres_curve[1<<20];
+
+#ifndef STDOUT_SILENT
+    perf_clock = clock();
+#endif
+    for (int i = 0; i < (1<<20); i++)
+    {
+        double ev2 = log2(MAX(i/64.0 - black/64.0, 1));
+        double c2 = -cos(COERCE(ev2 - fullres_start, 0, fullres_transition)*M_PI/fullres_transition);
+        double f = (c2+1) / 2;
+        fullres_curve[i] = f;
+    }
+#ifndef STDOUT_SILENT
+    perf_clock = clock()-perf_clock;
+    printf("fullres mixing curve took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
+
     //~ printf("Exposure matching...\n");
     /* estimate ISO difference between bright and dark exposures */
     double corr_ev = 0;
@@ -1945,6 +2471,20 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     bright_noise /= corr;
     bright_noise_ev -= corr_ev;
 
+    //TODO: add option on UI for vertical stripes. Disable standard fix bad pixels for dual iso and do it here instead
+//    int fix_bad_pixels_dual = 0;
+//    int vertical_stripes_fix = 0;
+//    if (fix_bad_pixels_dual)
+//    {
+//        /* best done before interpolation */
+//        find_and_fix_bad_pixels(raw_info, raw_buffer_32, dark_noise, bright_noise, raw2ev, ev2raw, fix_bad_pixels_dual, is_bright);
+//    }
+
+//    if(vertical_stripes_fix){
+//        int force = vertical_stripes_fix > 1;
+//        fix_vertical_stripes_diso(raw_info, raw_buffer_32, force);
+//    }
+
     if(interp_method == 0)
     {
         amaze_interpolate(raw_info, raw_buffer_32, dark, bright, black, white, white_darkened, is_bright);
@@ -1958,6 +2498,15 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
 
     if (use_fullres) fullres_reconstruction(raw_info, fullres, dark, bright, white_darkened, is_bright);
 
+    //New mem space for the smoothed versions
+    if (chroma_smooth_method)
+    {
+        if (use_fullres)
+        {
+            fullres_smooth = malloc(w * h * sizeof(uint32_t));
+        }
+        halfres_smooth = malloc(w * h * sizeof(uint32_t));
+    }
     if(mix_images(raw_info, fullres, fullres_smooth, halfres, halfres_smooth, alias_map, dark, bright, overexposed, dark_noise, white_darkened, corr_ev, lowiso_dr, black, white, chroma_smooth_method, use_fullres))
     {
         /* let's check the ideal noise levels (on the halfres image, which in black areas is identical to the bright one) */
@@ -1980,7 +2529,7 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
         convert_20_to_16bit(raw_info, image_data, raw_buffer_32);
         ret = 1;
     }
-    
+
     if (!rggb) /* back to GBRG */
     {
         raw_info.active_area.y1--;
