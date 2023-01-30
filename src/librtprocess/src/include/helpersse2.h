@@ -25,6 +25,7 @@
 #include <x86intrin.h>
 
 #include <stdint.h>
+#include <math.h>
 
 typedef __m128d vdouble;
 typedef __m128i vint;
@@ -46,7 +47,7 @@ typedef __m128i vint2;
 #define PERMUTEPS(a,mask) _mm_shuffle_ps(a,a,mask)
 #endif
 
-static INLINE vfloat LC2VFU(float &a)
+static INLINE vfloat LC2VFU(float a)
 {
     // Load 8 floats from a and combine a[0],a[2],a[4] and a[6] into a vector of 4 floats
     vfloat a1 = _mm_loadu_ps( &a );

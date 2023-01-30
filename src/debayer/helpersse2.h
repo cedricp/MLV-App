@@ -16,6 +16,7 @@
 #endif
 
 #include <stdint.h>
+#include <math.h>
 
 typedef __m128d vdouble;
 typedef __m128i vint;
@@ -23,6 +24,7 @@ typedef __m128i vmask;
 
 typedef __m128 vfloat;
 typedef __m128i vint2;
+
 
 //
 #define LVF(x) _mm_load_ps(&x)

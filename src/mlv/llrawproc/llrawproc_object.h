@@ -53,6 +53,7 @@ typedef struct
     int diso_averaging;   // dual iso interpolation method, 0 - amaze-edge, 1 - mean23
     int diso_alias_map;   // flag for Alias Map switchin on/off
     int diso_frblending;  // flag for Fullres Blending switching on/off
+    int diso_hstripesfix;  // flag for Dual ISO horozontal stripes fix switching on/off
     int dark_frame;       // flag for Dark Frame subtraction mode 0 = off, 1 = ext, 2 = int
 
     /* cDNG bit depth and black/white levels */
