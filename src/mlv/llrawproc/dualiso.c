@@ -2311,7 +2311,7 @@ static void find_and_fix_bad_pixels(struct raw_info raw_info, uint32_t * raw_buf
 //    return round(raw_adjusted + fast_randn05());
 //}
 
-int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int interp_method, int use_alias_map, int use_fullres, int chroma_smooth_method, int fix_bad_pixels_dual, int vertical_stripes_fix)
+int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int interp_method, int use_alias_map, int use_fullres, int chroma_smooth_method, int vertical_stripes_fix)
 {
     int w = raw_info.width;
     int h = raw_info.height;
@@ -2484,12 +2484,12 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     bright_noise /= corr;
     bright_noise_ev -= corr_ev;
 
-    //TODO: add option on UI for vertical stripes. Disable standard fix bad pixels for dual iso and do it here instead
-    if (fix_bad_pixels_dual)
-    {
-        /* best done before interpolation */
-        find_and_fix_bad_pixels(raw_info, raw_buffer_32, dark_noise, bright_noise, fix_bad_pixels_dual, is_bright, black, white);
-    }
+    //NOTE: This bad pixels fix is not good, removed to use the normal one
+//    if (fix_bad_pixels_dual)
+//    {
+//        /* best done before interpolation */
+//        find_and_fix_bad_pixels(raw_info, raw_buffer_32, dark_noise, bright_noise, fix_bad_pixels_dual, is_bright, black, white);
+//    }
 
     if(vertical_stripes_fix){
         int force = vertical_stripes_fix > 1;
