@@ -87,12 +87,8 @@ void llrpSetDualIsoInterpolationMethod(mlvObject_t * video, int value);
 int llrpGetDualIsoAliasMapMode(mlvObject_t * video);
 void llrpSetDualIsoAliasMapMode(mlvObject_t * video, int value);
 
-enum { DISOI_FULLRES_OFF, DISOI_FULLRES_ON };
 int llrpGetDualIsoFullResBlendingMode(mlvObject_t * video);
 void llrpSetDualIsoFullResBlendingMode(mlvObject_t * video, int value);
-
-int llrpGetDualIsoHorizontalStripesFixMode(mlvObject_t * video);
-void llrpSetDualIsoHorizontalStripesFixMode(mlvObject_t * video, int value);
 
 enum { DISO_INVALID, DISO_FORCED, DISO_VALID }; // Return values
 int llrpGetDualIsoValidity(mlvObject_t * video);
