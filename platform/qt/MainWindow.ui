@@ -120,7 +120,7 @@
      <x>0</x>
      <y>0</y>
      <width>1200</width>
-     <height>22</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -467,9 +467,9 @@ QGroupBox::indicator:checked:disabled {
           <property name="geometry">
            <rect>
             <x>0</x>
-            <y>-327</y>
-            <width>273</width>
-            <height>5744</height>
+            <y>0</y>
+            <width>269</width>
+            <height>5772</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayoutScrollArea">
@@ -524,743 +524,6 @@ QGroupBox::indicator:checked:disabled {
                  <property name="spacing">
                   <number>5</number>
                  </property>
-                 <item row="1" column="0">
-                  <widget class="Line" name="line_10">
-                   <property name="styleSheet">
-                    <string notr="true">background-color: rgb(115, 115, 115);</string>
-                   </property>
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="22" column="0">
-                  <widget class="QFrame" name="toolButtonDualIso">
-                   <layout class="QHBoxLayout" name="horizontalLayout">
-                    <property name="spacing">
-                     <number>0</number>
-                    </property>
-                    <property name="leftMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="topMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="rightMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="bottomMargin">
-                     <number>0</number>
-                    </property>
-                    <item>
-                     <widget class="ColorToolButton" name="toolButtonDualIsoOff">
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
-                      </property>
-                      <property name="font">
-                       <font>
-                        <pointsize>10</pointsize>
-                       </font>
-                      </property>
-                      <property name="text">
-                       <string>Off</string>
-                      </property>
-                      <property name="checkable">
-                       <bool>true</bool>
-                      </property>
-                      <property name="checked">
-                       <bool>true</bool>
-                      </property>
-                      <property name="autoExclusive">
-                       <bool>true</bool>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="ColorToolButton" name="toolButtonDualIsoOn">
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
-                      </property>
-                      <property name="font">
-                       <font>
-                        <pointsize>10</pointsize>
-                       </font>
-                      </property>
-                      <property name="text">
-                       <string>On</string>
-                      </property>
-                      <property name="checkable">
-                       <bool>true</bool>
-                      </property>
-                      <property name="autoExclusive">
-                       <bool>true</bool>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="ColorToolButton" name="toolButtonDualIsoPreview">
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
-                      </property>
-                      <property name="font">
-                       <font>
-                        <pointsize>10</pointsize>
-                       </font>
-                      </property>
-                      <property name="text">
-                       <string>Preview</string>
-                      </property>
-                      <property name="checkable">
-                       <bool>true</bool>
-                      </property>
-                      <property name="autoExclusive">
-                       <bool>true</bool>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </widget>
-                 </item>
-                 <item row="25" column="0">
-                  <layout class="QHBoxLayout" name="horizontalLayout_15">
-                   <item>
-                    <widget class="QLabel" name="DualISOAliasMapLabel">
-                     <property name="font">
-                      <font>
-                       <pointsize>10</pointsize>
-                      </font>
-                     </property>
-                     <property name="text">
-                      <string>Alias Map</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QFrame" name="toolButtonDualIsoAliasMap">
-                     <layout class="QHBoxLayout" name="horizontalLayout_3">
-                      <property name="spacing">
-                       <number>0</number>
-                      </property>
-                      <property name="leftMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="topMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="rightMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="bottomMargin">
-                       <number>0</number>
-                      </property>
-                      <item>
-                       <widget class="ColorToolButton" name="toolButtonDualIsoAliasMapOff">
-                        <property name="sizePolicy">
-                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                          <horstretch>0</horstretch>
-                          <verstretch>0</verstretch>
-                         </sizepolicy>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>10</pointsize>
-                         </font>
-                        </property>
-                        <property name="text">
-                         <string>Off</string>
-                        </property>
-                        <property name="checkable">
-                         <bool>true</bool>
-                        </property>
-                        <property name="autoExclusive">
-                         <bool>true</bool>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="ColorToolButton" name="toolButtonDualIsoAliasMapOn">
-                        <property name="sizePolicy">
-                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                          <horstretch>0</horstretch>
-                          <verstretch>0</verstretch>
-                         </sizepolicy>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>10</pointsize>
-                         </font>
-                        </property>
-                        <property name="text">
-                         <string>On</string>
-                        </property>
-                        <property name="checkable">
-                         <bool>true</bool>
-                        </property>
-                        <property name="checked">
-                         <bool>true</bool>
-                        </property>
-                        <property name="autoExclusive">
-                         <bool>true</bool>
-                        </property>
-                       </widget>
-                      </item>
-                     </layout>
-                    </widget>
-                   </item>
-                  </layout>
-                 </item>
-                 <item row="8" column="0">
-                  <layout class="QHBoxLayout" name="horizontalLayout_12">
-                   <property name="spacing">
-                    <number>5</number>
-                   </property>
-                   <item>
-                    <widget class="QLabel" name="FocusPixelsInterpolationMethodLabel">
-                     <property name="font">
-                      <font>
-                       <pointsize>10</pointsize>
-                      </font>
-                     </property>
-                     <property name="text">
-                      <string>Interpolation Method</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QFrame" name="toolButtonFocusDotInterpolation">
-                     <layout class="QHBoxLayout" name="horizontalLayout_6">
-                      <property name="spacing">
-                       <number>0</number>
-                      </property>
-                      <property name="leftMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="topMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="rightMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="bottomMargin">
-                       <number>0</number>
-                      </property>
-                      <item>
-                       <widget class="ColorToolButton" name="toolButtonFocusDotMethod1">
-                        <property name="sizePolicy">
-                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                          <horstretch>0</horstretch>
-                          <verstretch>0</verstretch>
-                         </sizepolicy>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>10</pointsize>
-                         </font>
-                        </property>
-                        <property name="text">
-                         <string>1</string>
-                        </property>
-                        <property name="checkable">
-                         <bool>true</bool>
-                        </property>
-                        <property name="checked">
-                         <bool>true</bool>
-                        </property>
-                        <property name="autoExclusive">
-                         <bool>true</bool>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="ColorToolButton" name="toolButtonFocusDotMethod2">
-                        <property name="sizePolicy">
-                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                          <horstretch>0</horstretch>
-                          <verstretch>0</verstretch>
-                         </sizepolicy>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>10</pointsize>
-                         </font>
-                        </property>
-                        <property name="text">
-                         <string>2</string>
-                        </property>
-                        <property name="checkable">
-                         <bool>true</bool>
-                        </property>
-                        <property name="autoExclusive">
-                         <bool>true</bool>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="ColorToolButton" name="toolButtonFocusDotMethod3">
-                        <property name="sizePolicy">
-                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                          <horstretch>0</horstretch>
-                          <verstretch>0</verstretch>
-                         </sizepolicy>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>10</pointsize>
-                         </font>
-                        </property>
-                        <property name="text">
-                         <string>3</string>
-                        </property>
-                        <property name="checkable">
-                         <bool>true</bool>
-                        </property>
-                        <property name="autoExclusive">
-                         <bool>true</bool>
-                        </property>
-                       </widget>
-                      </item>
-                     </layout>
-                    </widget>
-                   </item>
-                  </layout>
-                 </item>
-                 <item row="13" column="0">
-                  <layout class="QHBoxLayout" name="horizontalLayout_13">
-                   <property name="spacing">
-                    <number>5</number>
-                   </property>
-                   <item>
-                    <widget class="QLabel" name="BadPixelsInterpolationMethodLabel">
-                     <property name="font">
-                      <font>
-                       <pointsize>10</pointsize>
-                      </font>
-                     </property>
-                     <property name="text">
-                      <string>Interpolation Method</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QFrame" name="toolButtonBadPixelsInterpolation">
-                     <layout class="QHBoxLayout" name="horizontalLayout_8">
-                      <property name="spacing">
-                       <number>0</number>
-                      </property>
-                      <property name="leftMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="topMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="rightMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="bottomMargin">
-                       <number>0</number>
-                      </property>
-                      <item>
-                       <widget class="ColorToolButton" name="toolButtonBadPixelsMethod1">
-                        <property name="sizePolicy">
-                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                          <horstretch>0</horstretch>
-                          <verstretch>0</verstretch>
-                         </sizepolicy>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>10</pointsize>
-                         </font>
-                        </property>
-                        <property name="text">
-                         <string>1</string>
-                        </property>
-                        <property name="checkable">
-                         <bool>true</bool>
-                        </property>
-                        <property name="checked">
-                         <bool>true</bool>
-                        </property>
-                        <property name="autoExclusive">
-                         <bool>true</bool>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="ColorToolButton" name="toolButtonBadPixelsMethod2">
-                        <property name="sizePolicy">
-                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                          <horstretch>0</horstretch>
-                          <verstretch>0</verstretch>
-                         </sizepolicy>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>10</pointsize>
-                         </font>
-                        </property>
-                        <property name="text">
-                         <string>2</string>
-                        </property>
-                        <property name="checkable">
-                         <bool>true</bool>
-                        </property>
-                        <property name="autoExclusive">
-                         <bool>true</bool>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="ColorToolButton" name="toolButtonBadPixelsMethod3">
-                        <property name="sizePolicy">
-                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                          <horstretch>0</horstretch>
-                          <verstretch>0</verstretch>
-                         </sizepolicy>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>10</pointsize>
-                         </font>
-                        </property>
-                        <property name="text">
-                         <string>3</string>
-                        </property>
-                        <property name="checkable">
-                         <bool>true</bool>
-                        </property>
-                        <property name="autoExclusive">
-                         <bool>true</bool>
-                        </property>
-                       </widget>
-                      </item>
-                     </layout>
-                    </widget>
-                   </item>
-                  </layout>
-                 </item>
-                 <item row="15" column="0">
-                  <widget class="QLabel" name="ChromaSmoothLabel">
-                   <property name="font">
-                    <font>
-                     <pointsize>10</pointsize>
-                    </font>
-                   </property>
-                   <property name="text">
-                    <string>Chroma Smooth</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="19" column="0">
-                  <widget class="QFrame" name="toolButtonVerticalStripes">
-                   <layout class="QHBoxLayout" name="horizontalLayout_11">
-                    <property name="spacing">
-                     <number>0</number>
-                    </property>
-                    <property name="leftMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="topMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="rightMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="bottomMargin">
-                     <number>0</number>
-                    </property>
-                    <item>
-                     <widget class="ColorToolButton" name="toolButtonVerticalStripesOff">
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
-                      </property>
-                      <property name="font">
-                       <font>
-                        <pointsize>10</pointsize>
-                       </font>
-                      </property>
-                      <property name="text">
-                       <string>Off</string>
-                      </property>
-                      <property name="checkable">
-                       <bool>true</bool>
-                      </property>
-                      <property name="checked">
-                       <bool>true</bool>
-                      </property>
-                      <property name="autoExclusive">
-                       <bool>true</bool>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="ColorToolButton" name="toolButtonVerticalStripesNormal">
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
-                      </property>
-                      <property name="font">
-                       <font>
-                        <pointsize>10</pointsize>
-                       </font>
-                      </property>
-                      <property name="text">
-                       <string>Normal</string>
-                      </property>
-                      <property name="checkable">
-                       <bool>true</bool>
-                      </property>
-                      <property name="autoExclusive">
-                       <bool>true</bool>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="ColorToolButton" name="toolButtonVerticalStripesForce">
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
-                      </property>
-                      <property name="font">
-                       <font>
-                        <pointsize>10</pointsize>
-                       </font>
-                      </property>
-                      <property name="text">
-                       <string>Force</string>
-                      </property>
-                      <property name="checkable">
-                       <bool>true</bool>
-                      </property>
-                      <property name="autoExclusive">
-                       <bool>true</bool>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </widget>
-                 </item>
-                 <item row="2" column="0">
-                  <widget class="QLabel" name="labelDarkFrameSubtraction">
-                   <property name="font">
-                    <font>
-                     <pointsize>10</pointsize>
-                    </font>
-                   </property>
-                   <property name="text">
-                    <string>Darkframe Subtraction</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="18" column="0">
-                  <widget class="QLabel" name="VerticalStripesLabel">
-                   <property name="font">
-                    <font>
-                     <pointsize>10</pointsize>
-                    </font>
-                   </property>
-                   <property name="text">
-                    <string>Vertical Stripes</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="17" column="0">
-                  <widget class="Line" name="line_8">
-                   <property name="styleSheet">
-                    <string notr="true">background-color: rgb(115, 115, 115);</string>
-                   </property>
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="21" column="0">
-                  <layout class="QHBoxLayout" name="horizontalLayout_33">
-                   <item>
-                    <widget class="QLabel" name="DualISOLabel">
-                     <property name="sizePolicy">
-                      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                       <horstretch>0</horstretch>
-                       <verstretch>0</verstretch>
-                      </sizepolicy>
-                     </property>
-                     <property name="baseSize">
-                      <size>
-                       <width>0</width>
-                       <height>0</height>
-                      </size>
-                     </property>
-                     <property name="font">
-                      <font>
-                       <pointsize>10</pointsize>
-                      </font>
-                     </property>
-                     <property name="text">
-                      <string>Dual ISO</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <spacer name="horizontalSpacer_32">
-                     <property name="orientation">
-                      <enum>Qt::Horizontal</enum>
-                     </property>
-                     <property name="sizeType">
-                      <enum>QSizePolicy::Fixed</enum>
-                     </property>
-                     <property name="sizeHint" stdset="0">
-                      <size>
-                       <width>0</width>
-                       <height>21</height>
-                      </size>
-                     </property>
-                    </spacer>
-                   </item>
-                   <item>
-                    <widget class="ColorToolButton" name="toolButtonDualIsoForce">
-                     <property name="sizePolicy">
-                      <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-                       <horstretch>0</horstretch>
-                       <verstretch>0</verstretch>
-                      </sizepolicy>
-                     </property>
-                     <property name="font">
-                      <font>
-                       <pointsize>10</pointsize>
-                      </font>
-                     </property>
-                     <property name="text">
-                      <string>Force</string>
-                     </property>
-                     <property name="checkable">
-                      <bool>true</bool>
-                     </property>
-                    </widget>
-                   </item>
-                  </layout>
-                 </item>
-                 <item row="14" column="0">
-                  <widget class="Line" name="line_4">
-                   <property name="styleSheet">
-                    <string notr="true">background-color: rgb(115, 115, 115);</string>
-                   </property>
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="7" column="0">
-                  <widget class="QFrame" name="toolButtonFocusDots">
-                   <layout class="QHBoxLayout" name="horizontalLayout_5">
-                    <property name="spacing">
-                     <number>0</number>
-                    </property>
-                    <property name="leftMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="topMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="rightMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="bottomMargin">
-                     <number>0</number>
-                    </property>
-                    <item>
-                     <widget class="ColorToolButton" name="toolButtonFocusDotsOff">
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
-                      </property>
-                      <property name="font">
-                       <font>
-                        <pointsize>10</pointsize>
-                       </font>
-                      </property>
-                      <property name="text">
-                       <string>Off</string>
-                      </property>
-                      <property name="checkable">
-                       <bool>true</bool>
-                      </property>
-                      <property name="checked">
-                       <bool>true</bool>
-                      </property>
-                      <property name="autoExclusive">
-                       <bool>true</bool>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="ColorToolButton" name="toolButtonFocusDotsOn">
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
-                      </property>
-                      <property name="font">
-                       <font>
-                        <pointsize>10</pointsize>
-                       </font>
-                      </property>
-                      <property name="text">
-                       <string>On</string>
-                      </property>
-                      <property name="checkable">
-                       <bool>true</bool>
-                      </property>
-                      <property name="autoExclusive">
-                       <bool>true</bool>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="ColorToolButton" name="toolButtonFocusDotsCropRec">
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
-                      </property>
-                      <property name="font">
-                       <font>
-                        <pointsize>10</pointsize>
-                       </font>
-                      </property>
-                      <property name="text">
-                       <string>CropRec</string>
-                      </property>
-                      <property name="checkable">
-                       <bool>true</bool>
-                      </property>
-                      <property name="autoExclusive">
-                       <bool>true</bool>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </widget>
-                 </item>
                  <item row="0" column="0">
                   <widget class="QCheckBox" name="checkBoxRawFixEnable">
                    <property name="font">
@@ -1276,206 +539,25 @@ QGroupBox::indicator:checked:disabled {
                    </property>
                   </widget>
                  </item>
-                 <item row="37" column="0">
-                  <layout class="QGridLayout" name="gridLayout_31">
-                   <property name="spacing">
-                    <number>0</number>
+                 <item row="1" column="0">
+                  <widget class="Line" name="line_10">
+                   <property name="styleSheet">
+                    <string notr="true">background-color: rgb(115, 115, 115);</string>
                    </property>
-                   <item row="0" column="0">
-                    <widget class="QLabel" name="RawWhiteLabel">
-                     <property name="font">
-                      <font>
-                       <pointsize>10</pointsize>
-                      </font>
-                     </property>
-                     <property name="text">
-                      <string>RAW White Level</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="1">
-                    <spacer name="horizontalSpacer_26">
-                     <property name="orientation">
-                      <enum>Qt::Horizontal</enum>
-                     </property>
-                     <property name="sizeType">
-                      <enum>QSizePolicy::Maximum</enum>
-                     </property>
-                     <property name="sizeHint" stdset="0">
-                      <size>
-                       <width>40</width>
-                       <height>20</height>
-                      </size>
-                     </property>
-                    </spacer>
-                   </item>
-                   <item row="0" column="2">
-                    <widget class="DoubleClickLabel" name="label_RawWhiteVal">
-                     <property name="font">
-                      <font>
-                       <pointsize>10</pointsize>
-                      </font>
-                     </property>
-                     <property name="contextMenuPolicy">
-                      <enum>Qt::CustomContextMenu</enum>
-                     </property>
-                     <property name="layoutDirection">
-                      <enum>Qt::RightToLeft</enum>
-                     </property>
-                     <property name="text">
-                      <string>0</string>
-                     </property>
-                     <property name="alignment">
-                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="1" column="0" colspan="3">
-                    <widget class="NoScrollSlider" name="horizontalSliderRawWhite">
-                     <property name="sizePolicy">
-                      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                       <horstretch>0</horstretch>
-                       <verstretch>0</verstretch>
-                      </sizepolicy>
-                     </property>
-                     <property name="minimumSize">
-                      <size>
-                       <width>0</width>
-                       <height>0</height>
-                      </size>
-                     </property>
-                     <property name="maximumSize">
-                      <size>
-                       <width>16777215</width>
-                       <height>16777215</height>
-                      </size>
-                     </property>
-                     <property name="minimum">
-                      <number>0</number>
-                     </property>
-                     <property name="maximum">
-                      <number>16385</number>
-                     </property>
-                     <property name="value">
-                      <number>0</number>
-                     </property>
-                     <property name="orientation">
-                      <enum>Qt::Horizontal</enum>
-                     </property>
-                    </widget>
-                   </item>
-                  </layout>
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                  </widget>
                  </item>
-                 <item row="33" column="0">
-                  <widget class="QLabel" name="PatternNoiseLabel">
+                 <item row="2" column="0">
+                  <widget class="QLabel" name="labelDarkFrameSubtraction">
                    <property name="font">
                     <font>
                      <pointsize>10</pointsize>
                     </font>
                    </property>
                    <property name="text">
-                    <string>Pattern Noise</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="24" column="0">
-                  <layout class="QHBoxLayout" name="horizontalLayout_16">
-                   <property name="sizeConstraint">
-                    <enum>QLayout::SetMinimumSize</enum>
-                   </property>
-                   <item>
-                    <widget class="QLabel" name="DualISOFullresBlendingLabel">
-                     <property name="font">
-                      <font>
-                       <pointsize>10</pointsize>
-                      </font>
-                     </property>
-                     <property name="text">
-                      <string>Fullres Blending</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QFrame" name="toolButtonDualIsoFullresBlending">
-                     <layout class="QHBoxLayout" name="horizontalLayout_4">
-                      <property name="spacing">
-                       <number>0</number>
-                      </property>
-                      <property name="leftMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="topMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="rightMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="bottomMargin">
-                       <number>0</number>
-                      </property>
-                      <item>
-                       <widget class="ColorToolButton" name="toolButtonDualIsoFullresBlendingOff">
-                        <property name="sizePolicy">
-                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                          <horstretch>0</horstretch>
-                          <verstretch>0</verstretch>
-                         </sizepolicy>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>10</pointsize>
-                         </font>
-                        </property>
-                        <property name="text">
-                         <string>Off</string>
-                        </property>
-                        <property name="checkable">
-                         <bool>true</bool>
-                        </property>
-                        <property name="autoExclusive">
-                         <bool>true</bool>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="ColorToolButton" name="toolButtonDualIsoFullresBlendingOn">
-                        <property name="sizePolicy">
-                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                          <horstretch>0</horstretch>
-                          <verstretch>0</verstretch>
-                         </sizepolicy>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>10</pointsize>
-                         </font>
-                        </property>
-                        <property name="text">
-                         <string>On</string>
-                        </property>
-                        <property name="checkable">
-                         <bool>true</bool>
-                        </property>
-                        <property name="checked">
-                         <bool>true</bool>
-                        </property>
-                        <property name="autoExclusive">
-                         <bool>true</bool>
-                        </property>
-                       </widget>
-                      </item>
-                     </layout>
-                    </widget>
-                   </item>
-                  </layout>
-                 </item>
-                 <item row="35" column="0">
-                  <widget class="Line" name="line_16">
-                   <property name="styleSheet">
-                    <string notr="true">background-color: rgb(115, 115, 115);</string>
-                   </property>
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
+                    <string>Darkframe Subtraction</string>
                    </property>
                   </widget>
                  </item>
@@ -1631,23 +713,159 @@ QGroupBox::indicator:checked:disabled {
                    </item>
                   </layout>
                  </item>
-                 <item row="23" column="0">
-                  <layout class="QHBoxLayout" name="horizontalLayout_14">
+                 <item row="4" column="0">
+                  <widget class="QLineEdit" name="lineEditDarkFrameFile">
+                   <property name="font">
+                    <font>
+                     <pointsize>10</pointsize>
+                    </font>
+                   </property>
+                   <property name="text">
+                    <string>No file selected</string>
+                   </property>
+                   <property name="readOnly">
+                    <bool>false</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="5" column="0">
+                  <widget class="Line" name="line_7">
+                   <property name="styleSheet">
+                    <string notr="true">background-color: rgb(115, 115, 115);</string>
+                   </property>
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="6" column="0">
+                  <widget class="QLabel" name="FocusPixelsLabel">
+                   <property name="font">
+                    <font>
+                     <pointsize>10</pointsize>
+                    </font>
+                   </property>
+                   <property name="text">
+                    <string>Fix Focus Dots</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="7" column="0">
+                  <widget class="QFrame" name="toolButtonFocusDots">
+                   <layout class="QHBoxLayout" name="horizontalLayout_5">
+                    <property name="spacing">
+                     <number>0</number>
+                    </property>
+                    <property name="leftMargin">
+                     <number>0</number>
+                    </property>
+                    <property name="topMargin">
+                     <number>0</number>
+                    </property>
+                    <property name="rightMargin">
+                     <number>0</number>
+                    </property>
+                    <property name="bottomMargin">
+                     <number>0</number>
+                    </property>
+                    <item>
+                     <widget class="ColorToolButton" name="toolButtonFocusDotsOff">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
+                      </property>
+                      <property name="text">
+                       <string>Off</string>
+                      </property>
+                      <property name="checkable">
+                       <bool>true</bool>
+                      </property>
+                      <property name="checked">
+                       <bool>true</bool>
+                      </property>
+                      <property name="autoExclusive">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="ColorToolButton" name="toolButtonFocusDotsOn">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
+                      </property>
+                      <property name="text">
+                       <string>On</string>
+                      </property>
+                      <property name="checkable">
+                       <bool>true</bool>
+                      </property>
+                      <property name="autoExclusive">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="ColorToolButton" name="toolButtonFocusDotsCropRec">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
+                      </property>
+                      <property name="text">
+                       <string>CropRec</string>
+                      </property>
+                      <property name="checkable">
+                       <bool>true</bool>
+                      </property>
+                      <property name="autoExclusive">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item row="8" column="0">
+                  <layout class="QHBoxLayout" name="horizontalLayout_12">
+                   <property name="spacing">
+                    <number>5</number>
+                   </property>
                    <item>
-                    <widget class="QLabel" name="DualISOInterpolationLabel">
+                    <widget class="QLabel" name="FocusPixelsInterpolationMethodLabel">
                      <property name="font">
                       <font>
                        <pointsize>10</pointsize>
                       </font>
                      </property>
                      <property name="text">
-                      <string>Interpolation</string>
+                      <string>Interpolation Method</string>
                      </property>
                     </widget>
                    </item>
                    <item>
-                    <widget class="QFrame" name="toolButtonDualIsoInterpolation">
-                     <layout class="QHBoxLayout" name="horizontalLayout_2">
+                    <widget class="QFrame" name="toolButtonFocusDotInterpolation">
+                     <layout class="QHBoxLayout" name="horizontalLayout_6">
                       <property name="spacing">
                        <number>0</number>
                       </property>
@@ -1664,7 +882,7 @@ QGroupBox::indicator:checked:disabled {
                        <number>0</number>
                       </property>
                       <item>
-                       <widget class="ColorToolButton" name="toolButtonDualIsoInterpolationAmaze">
+                       <widget class="ColorToolButton" name="toolButtonFocusDotMethod1">
                         <property name="sizePolicy">
                          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                           <horstretch>0</horstretch>
@@ -1677,7 +895,7 @@ QGroupBox::indicator:checked:disabled {
                          </font>
                         </property>
                         <property name="text">
-                         <string>AMaZE</string>
+                         <string>1</string>
                         </property>
                         <property name="checkable">
                          <bool>true</bool>
@@ -1691,7 +909,7 @@ QGroupBox::indicator:checked:disabled {
                        </widget>
                       </item>
                       <item>
-                       <widget class="ColorToolButton" name="toolButtonDualIsoInterpolationMean">
+                       <widget class="ColorToolButton" name="toolButtonFocusDotMethod2">
                         <property name="sizePolicy">
                          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                           <horstretch>0</horstretch>
@@ -1704,7 +922,31 @@ QGroupBox::indicator:checked:disabled {
                          </font>
                         </property>
                         <property name="text">
-                         <string>Mean</string>
+                         <string>2</string>
+                        </property>
+                        <property name="checkable">
+                         <bool>true</bool>
+                        </property>
+                        <property name="autoExclusive">
+                         <bool>true</bool>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="ColorToolButton" name="toolButtonFocusDotMethod3">
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>10</pointsize>
+                         </font>
+                        </property>
+                        <property name="text">
+                         <string>3</string>
                         </property>
                         <property name="checkable">
                          <bool>true</bool>
@@ -1716,6 +958,45 @@ QGroupBox::indicator:checked:disabled {
                       </item>
                      </layout>
                     </widget>
+                   </item>
+                  </layout>
+                 </item>
+                 <item row="9" column="0">
+                  <widget class="Line" name="line_3">
+                   <property name="styleSheet">
+                    <string notr="true">background-color: rgb(115, 115, 115);</string>
+                   </property>
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="10" column="0">
+                  <layout class="QHBoxLayout" name="horizontalLayout_45">
+                   <item>
+                    <widget class="QLabel" name="BadPixelsLabel">
+                     <property name="font">
+                      <font>
+                       <pointsize>10</pointsize>
+                      </font>
+                     </property>
+                     <property name="text">
+                      <string>Fix Bad Pixels </string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <spacer name="horizontalSpacer_62">
+                     <property name="orientation">
+                      <enum>Qt::Horizontal</enum>
+                     </property>
+                     <property name="sizeHint" stdset="0">
+                      <size>
+                       <width>40</width>
+                       <height>20</height>
+                      </size>
+                     </property>
+                    </spacer>
                    </item>
                   </layout>
                  </item>
@@ -1844,172 +1125,6 @@ QGroupBox::indicator:checked:disabled {
                     </item>
                    </layout>
                   </widget>
-                 </item>
-                 <item row="4" column="0">
-                  <widget class="QLineEdit" name="lineEditDarkFrameFile">
-                   <property name="font">
-                    <font>
-                     <pointsize>10</pointsize>
-                    </font>
-                   </property>
-                   <property name="text">
-                    <string>No file selected</string>
-                   </property>
-                   <property name="readOnly">
-                    <bool>false</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="36" column="0">
-                  <layout class="QGridLayout" name="gridLayout_32">
-                   <property name="horizontalSpacing">
-                    <number>5</number>
-                   </property>
-                   <property name="verticalSpacing">
-                    <number>0</number>
-                   </property>
-                   <item row="0" column="0">
-                    <widget class="QLabel" name="RawBlackLabel">
-                     <property name="font">
-                      <font>
-                       <pointsize>10</pointsize>
-                      </font>
-                     </property>
-                     <property name="text">
-                      <string>RAW Black Level</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="2">
-                    <spacer name="horizontalSpacer_27">
-                     <property name="orientation">
-                      <enum>Qt::Horizontal</enum>
-                     </property>
-                     <property name="sizeType">
-                      <enum>QSizePolicy::Maximum</enum>
-                     </property>
-                     <property name="sizeHint" stdset="0">
-                      <size>
-                       <width>40</width>
-                       <height>20</height>
-                      </size>
-                     </property>
-                    </spacer>
-                   </item>
-                   <item row="0" column="3">
-                    <widget class="DoubleClickLabel" name="label_RawBlackVal">
-                     <property name="font">
-                      <font>
-                       <pointsize>10</pointsize>
-                      </font>
-                     </property>
-                     <property name="contextMenuPolicy">
-                      <enum>Qt::CustomContextMenu</enum>
-                     </property>
-                     <property name="layoutDirection">
-                      <enum>Qt::RightToLeft</enum>
-                     </property>
-                     <property name="text">
-                      <string>0</string>
-                     </property>
-                     <property name="alignment">
-                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="1" column="0" colspan="4">
-                    <widget class="NoScrollSlider" name="horizontalSliderRawBlack">
-                     <property name="sizePolicy">
-                      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                       <horstretch>0</horstretch>
-                       <verstretch>0</verstretch>
-                      </sizepolicy>
-                     </property>
-                     <property name="minimumSize">
-                      <size>
-                       <width>0</width>
-                       <height>0</height>
-                      </size>
-                     </property>
-                     <property name="maximumSize">
-                      <size>
-                       <width>16777215</width>
-                       <height>16777215</height>
-                      </size>
-                     </property>
-                     <property name="minimum">
-                      <number>0</number>
-                     </property>
-                     <property name="maximum">
-                      <number>16385</number>
-                     </property>
-                     <property name="value">
-                      <number>0</number>
-                     </property>
-                     <property name="orientation">
-                      <enum>Qt::Horizontal</enum>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="1">
-                    <widget class="QToolButton" name="toolButtonRawBlackAutoCorrect">
-                     <property name="text">
-                      <string>Repair</string>
-                     </property>
-                    </widget>
-                   </item>
-                  </layout>
-                 </item>
-                 <item row="20" column="0">
-                  <widget class="Line" name="line_9">
-                   <property name="styleSheet">
-                    <string notr="true">background-color: rgb(115, 115, 115);</string>
-                   </property>
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="6" column="0">
-                  <widget class="QLabel" name="FocusPixelsLabel">
-                   <property name="font">
-                    <font>
-                     <pointsize>10</pointsize>
-                    </font>
-                   </property>
-                   <property name="text">
-                    <string>Fix Focus Dots</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="10" column="0">
-                  <layout class="QHBoxLayout" name="horizontalLayout_45">
-                   <item>
-                    <widget class="QLabel" name="BadPixelsLabel">
-                     <property name="font">
-                      <font>
-                       <pointsize>10</pointsize>
-                      </font>
-                     </property>
-                     <property name="text">
-                      <string>Fix Bad Pixels </string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <spacer name="horizontalSpacer_62">
-                     <property name="orientation">
-                      <enum>Qt::Horizontal</enum>
-                     </property>
-                     <property name="sizeHint" stdset="0">
-                      <size>
-                       <width>40</width>
-                       <height>20</height>
-                      </size>
-                     </property>
-                    </spacer>
-                   </item>
-                  </layout>
                  </item>
                  <item row="12" column="0">
                   <layout class="QHBoxLayout" name="horizontalLayout_21">
@@ -2236,6 +1351,143 @@ QGroupBox::indicator:checked:disabled {
                    </item>
                   </layout>
                  </item>
+                 <item row="13" column="0">
+                  <layout class="QHBoxLayout" name="horizontalLayout_13">
+                   <property name="spacing">
+                    <number>5</number>
+                   </property>
+                   <item>
+                    <widget class="QLabel" name="BadPixelsInterpolationMethodLabel">
+                     <property name="font">
+                      <font>
+                       <pointsize>10</pointsize>
+                      </font>
+                     </property>
+                     <property name="text">
+                      <string>Interpolation Method</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QFrame" name="toolButtonBadPixelsInterpolation">
+                     <layout class="QHBoxLayout" name="horizontalLayout_8">
+                      <property name="spacing">
+                       <number>0</number>
+                      </property>
+                      <property name="leftMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="topMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="rightMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="bottomMargin">
+                       <number>0</number>
+                      </property>
+                      <item>
+                       <widget class="ColorToolButton" name="toolButtonBadPixelsMethod1">
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>10</pointsize>
+                         </font>
+                        </property>
+                        <property name="text">
+                         <string>1</string>
+                        </property>
+                        <property name="checkable">
+                         <bool>true</bool>
+                        </property>
+                        <property name="checked">
+                         <bool>true</bool>
+                        </property>
+                        <property name="autoExclusive">
+                         <bool>true</bool>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="ColorToolButton" name="toolButtonBadPixelsMethod2">
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>10</pointsize>
+                         </font>
+                        </property>
+                        <property name="text">
+                         <string>2</string>
+                        </property>
+                        <property name="checkable">
+                         <bool>true</bool>
+                        </property>
+                        <property name="autoExclusive">
+                         <bool>true</bool>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="ColorToolButton" name="toolButtonBadPixelsMethod3">
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>10</pointsize>
+                         </font>
+                        </property>
+                        <property name="text">
+                         <string>3</string>
+                        </property>
+                        <property name="checkable">
+                         <bool>true</bool>
+                        </property>
+                        <property name="autoExclusive">
+                         <bool>true</bool>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                 <item row="14" column="0">
+                  <widget class="Line" name="line_4">
+                   <property name="styleSheet">
+                    <string notr="true">background-color: rgb(115, 115, 115);</string>
+                   </property>
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="15" column="0">
+                  <widget class="QLabel" name="ChromaSmoothLabel">
+                   <property name="font">
+                    <font>
+                     <pointsize>10</pointsize>
+                    </font>
+                   </property>
+                   <property name="text">
+                    <string>Chroma Smooth</string>
+                   </property>
+                  </widget>
+                 </item>
                  <item row="16" column="0">
                   <widget class="QFrame" name="toolButtonChroma">
                    <layout class="QHBoxLayout" name="horizontalLayout_9">
@@ -2356,8 +1608,8 @@ QGroupBox::indicator:checked:disabled {
                    </layout>
                   </widget>
                  </item>
-                 <item row="9" column="0">
-                  <widget class="Line" name="line_3">
+                 <item row="17" column="0">
+                  <widget class="Line" name="line_8">
                    <property name="styleSheet">
                     <string notr="true">background-color: rgb(115, 115, 115);</string>
                    </property>
@@ -2366,8 +1618,116 @@ QGroupBox::indicator:checked:disabled {
                    </property>
                   </widget>
                  </item>
-                 <item row="32" column="0">
-                  <widget class="Line" name="line_11">
+                 <item row="18" column="0">
+                  <widget class="QLabel" name="VerticalStripesLabel">
+                   <property name="font">
+                    <font>
+                     <pointsize>10</pointsize>
+                    </font>
+                   </property>
+                   <property name="text">
+                    <string>Vertical Stripes</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="19" column="0">
+                  <widget class="QFrame" name="toolButtonVerticalStripes">
+                   <layout class="QHBoxLayout" name="horizontalLayout_11">
+                    <property name="spacing">
+                     <number>0</number>
+                    </property>
+                    <property name="leftMargin">
+                     <number>0</number>
+                    </property>
+                    <property name="topMargin">
+                     <number>0</number>
+                    </property>
+                    <property name="rightMargin">
+                     <number>0</number>
+                    </property>
+                    <property name="bottomMargin">
+                     <number>0</number>
+                    </property>
+                    <item>
+                     <widget class="ColorToolButton" name="toolButtonVerticalStripesOff">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
+                      </property>
+                      <property name="text">
+                       <string>Off</string>
+                      </property>
+                      <property name="checkable">
+                       <bool>true</bool>
+                      </property>
+                      <property name="checked">
+                       <bool>true</bool>
+                      </property>
+                      <property name="autoExclusive">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="ColorToolButton" name="toolButtonVerticalStripesNormal">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
+                      </property>
+                      <property name="text">
+                       <string>Normal</string>
+                      </property>
+                      <property name="checkable">
+                       <bool>true</bool>
+                      </property>
+                      <property name="autoExclusive">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="ColorToolButton" name="toolButtonVerticalStripesForce">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
+                      </property>
+                      <property name="text">
+                       <string>Force</string>
+                      </property>
+                      <property name="checkable">
+                       <bool>true</bool>
+                      </property>
+                      <property name="autoExclusive">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item row="20" column="0">
+                  <widget class="Line" name="line_9">
                    <property name="styleSheet">
                     <string notr="true">background-color: rgb(115, 115, 115);</string>
                    </property>
@@ -2376,7 +1736,442 @@ QGroupBox::indicator:checked:disabled {
                    </property>
                   </widget>
                  </item>
-                 <item row="31" column="0">
+                 <item row="21" column="0">
+                  <layout class="QHBoxLayout" name="horizontalLayout_33">
+                   <item>
+                    <widget class="QLabel" name="DualISOLabel">
+                     <property name="sizePolicy">
+                      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                       <horstretch>0</horstretch>
+                       <verstretch>0</verstretch>
+                      </sizepolicy>
+                     </property>
+                     <property name="baseSize">
+                      <size>
+                       <width>0</width>
+                       <height>0</height>
+                      </size>
+                     </property>
+                     <property name="font">
+                      <font>
+                       <pointsize>10</pointsize>
+                      </font>
+                     </property>
+                     <property name="text">
+                      <string>Dual ISO</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <spacer name="horizontalSpacer_32">
+                     <property name="orientation">
+                      <enum>Qt::Horizontal</enum>
+                     </property>
+                     <property name="sizeType">
+                      <enum>QSizePolicy::Fixed</enum>
+                     </property>
+                     <property name="sizeHint" stdset="0">
+                      <size>
+                       <width>0</width>
+                       <height>21</height>
+                      </size>
+                     </property>
+                    </spacer>
+                   </item>
+                   <item>
+                    <widget class="ColorToolButton" name="toolButtonDualIsoForce">
+                     <property name="sizePolicy">
+                      <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                       <horstretch>0</horstretch>
+                       <verstretch>0</verstretch>
+                      </sizepolicy>
+                     </property>
+                     <property name="font">
+                      <font>
+                       <pointsize>10</pointsize>
+                      </font>
+                     </property>
+                     <property name="text">
+                      <string>Force</string>
+                     </property>
+                     <property name="checkable">
+                      <bool>true</bool>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                 <item row="22" column="0">
+                  <widget class="QFrame" name="toolButtonDualIso">
+                   <layout class="QHBoxLayout" name="horizontalLayout">
+                    <property name="spacing">
+                     <number>0</number>
+                    </property>
+                    <property name="leftMargin">
+                     <number>0</number>
+                    </property>
+                    <property name="topMargin">
+                     <number>0</number>
+                    </property>
+                    <property name="rightMargin">
+                     <number>0</number>
+                    </property>
+                    <property name="bottomMargin">
+                     <number>0</number>
+                    </property>
+                    <item>
+                     <widget class="ColorToolButton" name="toolButtonDualIsoOff">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
+                      </property>
+                      <property name="text">
+                       <string>Off</string>
+                      </property>
+                      <property name="checkable">
+                       <bool>true</bool>
+                      </property>
+                      <property name="checked">
+                       <bool>true</bool>
+                      </property>
+                      <property name="autoExclusive">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="ColorToolButton" name="toolButtonDualIsoOn">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
+                      </property>
+                      <property name="text">
+                       <string>On</string>
+                      </property>
+                      <property name="checkable">
+                       <bool>true</bool>
+                      </property>
+                      <property name="autoExclusive">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="ColorToolButton" name="toolButtonDualIsoPreview">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                       </font>
+                      </property>
+                      <property name="text">
+                       <string>Preview</string>
+                      </property>
+                      <property name="checkable">
+                       <bool>true</bool>
+                      </property>
+                      <property name="autoExclusive">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item row="23" column="0">
+                  <layout class="QHBoxLayout" name="horizontalLayout_14">
+                   <item>
+                    <widget class="QLabel" name="DualISOInterpolationLabel">
+                     <property name="font">
+                      <font>
+                       <pointsize>10</pointsize>
+                      </font>
+                     </property>
+                     <property name="text">
+                      <string>Interpolation</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QFrame" name="toolButtonDualIsoInterpolation">
+                     <layout class="QHBoxLayout" name="horizontalLayout_2">
+                      <property name="spacing">
+                       <number>0</number>
+                      </property>
+                      <property name="leftMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="topMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="rightMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="bottomMargin">
+                       <number>0</number>
+                      </property>
+                      <item>
+                       <widget class="ColorToolButton" name="toolButtonDualIsoInterpolationAmaze">
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>10</pointsize>
+                         </font>
+                        </property>
+                        <property name="text">
+                         <string>AMaZE</string>
+                        </property>
+                        <property name="checkable">
+                         <bool>true</bool>
+                        </property>
+                        <property name="checked">
+                         <bool>true</bool>
+                        </property>
+                        <property name="autoExclusive">
+                         <bool>true</bool>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="ColorToolButton" name="toolButtonDualIsoInterpolationMean">
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>10</pointsize>
+                         </font>
+                        </property>
+                        <property name="text">
+                         <string>Mean</string>
+                        </property>
+                        <property name="checkable">
+                         <bool>true</bool>
+                        </property>
+                        <property name="autoExclusive">
+                         <bool>true</bool>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                 <item row="24" column="0">
+                  <layout class="QHBoxLayout" name="horizontalLayout_15">
+                   <item>
+                    <widget class="QLabel" name="DualISOAliasMapLabel">
+                     <property name="font">
+                      <font>
+                       <pointsize>10</pointsize>
+                      </font>
+                     </property>
+                     <property name="text">
+                      <string>Alias Map</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QFrame" name="toolButtonDualIsoAliasMap">
+                     <layout class="QHBoxLayout" name="horizontalLayout_3">
+                      <property name="spacing">
+                       <number>0</number>
+                      </property>
+                      <property name="leftMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="topMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="rightMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="bottomMargin">
+                       <number>0</number>
+                      </property>
+                      <item>
+                       <widget class="ColorToolButton" name="toolButtonDualIsoAliasMapOff">
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>10</pointsize>
+                         </font>
+                        </property>
+                        <property name="text">
+                         <string>Off</string>
+                        </property>
+                        <property name="checkable">
+                         <bool>true</bool>
+                        </property>
+                        <property name="autoExclusive">
+                         <bool>true</bool>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="ColorToolButton" name="toolButtonDualIsoAliasMapOn">
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>10</pointsize>
+                         </font>
+                        </property>
+                        <property name="text">
+                         <string>On</string>
+                        </property>
+                        <property name="checkable">
+                         <bool>true</bool>
+                        </property>
+                        <property name="checked">
+                         <bool>true</bool>
+                        </property>
+                        <property name="autoExclusive">
+                         <bool>true</bool>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                 <item row="25" column="0">
+                  <layout class="QHBoxLayout" name="horizontalLayout_16">
+                   <item>
+                    <widget class="QLabel" name="DualISOFullresBlendingLabel">
+                     <property name="font">
+                      <font>
+                       <pointsize>10</pointsize>
+                      </font>
+                     </property>
+                     <property name="text">
+                      <string>Fullres Blending</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QFrame" name="toolButtonDualIsoFullresBlending">
+                     <layout class="QHBoxLayout" name="horizontalLayout_4">
+                      <property name="spacing">
+                       <number>0</number>
+                      </property>
+                      <property name="leftMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="topMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="rightMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="bottomMargin">
+                       <number>0</number>
+                      </property>
+                      <item>
+                       <widget class="ColorToolButton" name="toolButtonDualIsoFullresBlendingOff">
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>10</pointsize>
+                         </font>
+                        </property>
+                        <property name="text">
+                         <string>Off</string>
+                        </property>
+                        <property name="checkable">
+                         <bool>true</bool>
+                        </property>
+                        <property name="autoExclusive">
+                         <bool>true</bool>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="ColorToolButton" name="toolButtonDualIsoFullresBlendingOn">
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>10</pointsize>
+                         </font>
+                        </property>
+                        <property name="text">
+                         <string>On</string>
+                        </property>
+                        <property name="checkable">
+                         <bool>true</bool>
+                        </property>
+                        <property name="checked">
+                         <bool>true</bool>
+                        </property>
+                        <property name="autoExclusive">
+                         <bool>true</bool>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                 <item row="26" column="0">
+                  <widget class="Line" name="line_6">
+                   <property name="styleSheet">
+                    <string notr="true">background-color: rgb(115, 115, 115);</string>
+                   </property>
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="27" column="0">
                   <layout class="QHBoxLayout" name="horizontalLayout_18">
                    <property name="bottomMargin">
                     <number>0</number>
@@ -2416,8 +2211,8 @@ QGroupBox::indicator:checked:disabled {
                    </item>
                   </layout>
                  </item>
-                 <item row="30" column="0">
-                  <widget class="Line" name="line_6">
+                 <item row="28" column="0">
+                  <widget class="Line" name="line_11">
                    <property name="styleSheet">
                     <string notr="true">background-color: rgb(115, 115, 115);</string>
                    </property>
@@ -2426,7 +2221,19 @@ QGroupBox::indicator:checked:disabled {
                    </property>
                   </widget>
                  </item>
-                 <item row="34" column="0">
+                 <item row="29" column="0">
+                  <widget class="QLabel" name="PatternNoiseLabel">
+                   <property name="font">
+                    <font>
+                     <pointsize>10</pointsize>
+                    </font>
+                   </property>
+                   <property name="text">
+                    <string>Pattern Noise</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="30" column="0">
                   <widget class="QFrame" name="toolButtonPatternNoise">
                    <layout class="QHBoxLayout" name="horizontalLayout_10">
                     <property name="spacing">
@@ -2498,8 +2305,8 @@ QGroupBox::indicator:checked:disabled {
                    </layout>
                   </widget>
                  </item>
-                 <item row="5" column="0">
-                  <widget class="Line" name="line_7">
+                 <item row="31" column="0">
+                  <widget class="Line" name="line_16">
                    <property name="styleSheet">
                     <string notr="true">background-color: rgb(115, 115, 115);</string>
                    </property>
@@ -2508,32 +2315,191 @@ QGroupBox::indicator:checked:disabled {
                    </property>
                   </widget>
                  </item>
-                 <item row="27" column="0">
-                  <layout class="QHBoxLayout" name="horizontalLayout_47">
-                   <property name="topMargin">
+                 <item row="32" column="0">
+                  <layout class="QGridLayout" name="gridLayout_32">
+                   <property name="horizontalSpacing">
+                    <number>5</number>
+                   </property>
+                   <property name="verticalSpacing">
                     <number>0</number>
                    </property>
-                   <item>
-                    <widget class="QCheckBox" name="checkBoxDualIsoHStripesFix">
-                     <property name="sizePolicy">
-                      <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                       <horstretch>0</horstretch>
-                       <verstretch>0</verstretch>
-                      </sizepolicy>
-                     </property>
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="RawBlackLabel">
                      <property name="font">
                       <font>
                        <pointsize>10</pointsize>
                       </font>
                      </property>
-                     <property name="layoutDirection">
-                      <enum>Qt::LeftToRight</enum>
+                     <property name="text">
+                      <string>RAW Black Level</string>
                      </property>
-                     <property name="autoFillBackground">
-                      <bool>false</bool>
+                    </widget>
+                   </item>
+                   <item row="0" column="2">
+                    <spacer name="horizontalSpacer_27">
+                     <property name="orientation">
+                      <enum>Qt::Horizontal</enum>
+                     </property>
+                     <property name="sizeType">
+                      <enum>QSizePolicy::Maximum</enum>
+                     </property>
+                     <property name="sizeHint" stdset="0">
+                      <size>
+                       <width>40</width>
+                       <height>20</height>
+                      </size>
+                     </property>
+                    </spacer>
+                   </item>
+                   <item row="0" column="3">
+                    <widget class="DoubleClickLabel" name="label_RawBlackVal">
+                     <property name="font">
+                      <font>
+                       <pointsize>10</pointsize>
+                      </font>
+                     </property>
+                     <property name="contextMenuPolicy">
+                      <enum>Qt::CustomContextMenu</enum>
+                     </property>
+                     <property name="layoutDirection">
+                      <enum>Qt::RightToLeft</enum>
                      </property>
                      <property name="text">
-                      <string>Horizontal Stripes Fix</string>
+                      <string>0</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="0" colspan="4">
+                    <widget class="NoScrollSlider" name="horizontalSliderRawBlack">
+                     <property name="sizePolicy">
+                      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                       <horstretch>0</horstretch>
+                       <verstretch>0</verstretch>
+                      </sizepolicy>
+                     </property>
+                     <property name="minimumSize">
+                      <size>
+                       <width>0</width>
+                       <height>0</height>
+                      </size>
+                     </property>
+                     <property name="maximumSize">
+                      <size>
+                       <width>16777215</width>
+                       <height>16777215</height>
+                      </size>
+                     </property>
+                     <property name="minimum">
+                      <number>0</number>
+                     </property>
+                     <property name="maximum">
+                      <number>16385</number>
+                     </property>
+                     <property name="value">
+                      <number>0</number>
+                     </property>
+                     <property name="orientation">
+                      <enum>Qt::Horizontal</enum>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QToolButton" name="toolButtonRawBlackAutoCorrect">
+                     <property name="text">
+                      <string>Repair</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                 <item row="33" column="0">
+                  <layout class="QGridLayout" name="gridLayout_31">
+                   <property name="spacing">
+                    <number>0</number>
+                   </property>
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="RawWhiteLabel">
+                     <property name="font">
+                      <font>
+                       <pointsize>10</pointsize>
+                      </font>
+                     </property>
+                     <property name="text">
+                      <string>RAW White Level</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <spacer name="horizontalSpacer_26">
+                     <property name="orientation">
+                      <enum>Qt::Horizontal</enum>
+                     </property>
+                     <property name="sizeType">
+                      <enum>QSizePolicy::Maximum</enum>
+                     </property>
+                     <property name="sizeHint" stdset="0">
+                      <size>
+                       <width>40</width>
+                       <height>20</height>
+                      </size>
+                     </property>
+                    </spacer>
+                   </item>
+                   <item row="0" column="2">
+                    <widget class="DoubleClickLabel" name="label_RawWhiteVal">
+                     <property name="font">
+                      <font>
+                       <pointsize>10</pointsize>
+                      </font>
+                     </property>
+                     <property name="contextMenuPolicy">
+                      <enum>Qt::CustomContextMenu</enum>
+                     </property>
+                     <property name="layoutDirection">
+                      <enum>Qt::RightToLeft</enum>
+                     </property>
+                     <property name="text">
+                      <string>0</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="0" colspan="3">
+                    <widget class="NoScrollSlider" name="horizontalSliderRawWhite">
+                     <property name="sizePolicy">
+                      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                       <horstretch>0</horstretch>
+                       <verstretch>0</verstretch>
+                      </sizepolicy>
+                     </property>
+                     <property name="minimumSize">
+                      <size>
+                       <width>0</width>
+                       <height>0</height>
+                      </size>
+                     </property>
+                     <property name="maximumSize">
+                      <size>
+                       <width>16777215</width>
+                       <height>16777215</height>
+                      </size>
+                     </property>
+                     <property name="minimum">
+                      <number>0</number>
+                     </property>
+                     <property name="maximum">
+                      <number>16385</number>
+                     </property>
+                     <property name="value">
+                      <number>0</number>
+                     </property>
+                     <property name="orientation">
+                      <enum>Qt::Horizontal</enum>
                      </property>
                     </widget>
                    </item>
@@ -11114,8 +11080,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonFocusPixelsChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1002</x>
-     <y>37</y>
+     <x>1059</x>
+     <y>309</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11130,8 +11096,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonFocusPixelsChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1090</x>
-     <y>37</y>
+     <x>1121</x>
+     <y>309</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11146,8 +11112,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonFocusPixelsChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1178</x>
-     <y>37</y>
+     <x>1185</x>
+     <y>309</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11162,8 +11128,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonFocusPixelsIntMethodChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1092</x>
-     <y>67</y>
+     <x>1157</x>
+     <y>336</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11178,8 +11144,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonFocusPixelsIntMethodChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1134</x>
-     <y>67</y>
+     <x>1184</x>
+     <y>336</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11194,8 +11160,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonBadPixelsChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>980</x>
-     <y>132</y>
+     <x>1059</x>
+     <y>390</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11210,8 +11176,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonBadPixelsChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1046</x>
-     <y>132</y>
+     <x>1122</x>
+     <y>390</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11226,8 +11192,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonBadPixelsChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1112</x>
-     <y>132</y>
+     <x>1185</x>
+     <y>390</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11242,8 +11208,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonBadPixelsIntMethodChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1092</x>
-     <y>193</y>
+     <x>1157</x>
+     <y>445</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11258,8 +11224,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonBadPixelsIntMethodChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1134</x>
-     <y>193</y>
+     <x>1184</x>
+     <y>445</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11274,8 +11240,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonChromaSmoothChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>980</x>
-     <y>254</y>
+     <x>1043</x>
+     <y>499</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11290,8 +11256,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonChromaSmoothChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1046</x>
-     <y>254</y>
+     <x>1091</x>
+     <y>499</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11306,8 +11272,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonChromaSmoothChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1112</x>
-     <y>254</y>
+     <x>1138</x>
+     <y>499</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11322,8 +11288,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonChromaSmoothChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1178</x>
-     <y>254</y>
+     <x>1185</x>
+     <y>499</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11338,8 +11304,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonPatternNoiseChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1046</x>
-     <y>605</y>
+     <x>1091</x>
+     <y>256</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11354,8 +11320,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonPatternNoiseChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1178</x>
-     <y>605</y>
+     <x>1185</x>
+     <y>256</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11370,8 +11336,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonVerticalStripesChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1002</x>
-     <y>314</y>
+     <x>1059</x>
+     <y>552</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11386,8 +11352,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonVerticalStripesChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1090</x>
-     <y>314</y>
+     <x>1122</x>
+     <y>552</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11402,8 +11368,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonVerticalStripesChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1178</x>
-     <y>314</y>
+     <x>1185</x>
+     <y>552</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11418,8 +11384,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonDualIsoChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1002</x>
-     <y>382</y>
+     <x>1059</x>
+     <y>605</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11434,8 +11400,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonDualIsoChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1090</x>
-     <y>382</y>
+     <x>1122</x>
+     <y>605</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11450,8 +11416,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonDualIsoChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1178</x>
-     <y>382</y>
+     <x>1185</x>
+     <y>605</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11466,8 +11432,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonDualIsoInterpolationChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1113</x>
-     <y>412</y>
+     <x>1137</x>
+     <y>632</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11482,8 +11448,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonDualIsoInterpolationChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1177</x>
-     <y>412</y>
+     <x>1184</x>
+     <y>632</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11498,8 +11464,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonDualIsoAliasMapChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1114</x>
-     <y>474</y>
+     <x>1139</x>
+     <y>660</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11514,8 +11480,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonDualIsoAliasMapChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1177</x>
-     <y>474</y>
+     <x>1184</x>
+     <y>660</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11530,8 +11496,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonDualIsoFullresBlendingChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1092</x>
-     <y>443</y>
+     <x>1141</x>
+     <y>688</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11546,8 +11512,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonDualIsoFullresBlendingChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1134</x>
-     <y>443</y>
+     <x>1184</x>
+     <y>688</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11566,8 +11532,8 @@ QGroupBox::indicator:checked:disabled {
      <y>-1</y>
     </hint>
     <hint type="destinationlabel">
-     <x>1021</x>
-     <y>1049</y>
+     <x>1103</x>
+     <y>928</y>
     </hint>
    </hints>
   </connection>
@@ -11578,8 +11544,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>setChecked(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1021</x>
-     <y>1049</y>
+     <x>1103</x>
+     <y>928</y>
     </hint>
     <hint type="destinationlabel">
      <x>-1</x>
@@ -11594,8 +11560,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonBadPixelsSearchMethodChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1058</x>
-     <y>162</y>
+     <x>1109</x>
+     <y>406</y>
     </hint>
     <hint type="destinationlabel">
      <x>619</x>
@@ -11610,8 +11576,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonBadPixelsSearchMethodChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1102</x>
-     <y>162</y>
+     <x>1149</x>
+     <y>412</y>
     </hint>
     <hint type="destinationlabel">
      <x>652</x>
@@ -11626,8 +11592,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonDarkFrameSubtractionChanged(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1040</x>
-     <y>-51</y>
+     <x>1107</x>
+     <y>739</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11642,8 +11608,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonDarkFrameSubtractionChanged(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1177</x>
-     <y>-51</y>
+     <x>1146</x>
+     <y>739</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11658,8 +11624,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonDarkFrameSubtractionChanged(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1108</x>
-     <y>-51</y>
+     <x>1112</x>
+     <y>739</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11674,8 +11640,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonUpsideDownChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1090</x>
-     <y>5244</y>
+     <x>1040</x>
+     <y>816</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11690,8 +11656,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonUpsideDownChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1177</x>
-     <y>5244</y>
+     <x>1124</x>
+     <y>816</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11706,8 +11672,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonGCurvesChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>936</x>
-     <y>1770</y>
+     <x>1021</x>
+     <y>1843</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11722,8 +11688,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonGCurvesChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>959</x>
-     <y>1770</y>
+     <x>1064</x>
+     <y>1843</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11738,8 +11704,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonGCurvesChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>983</x>
-     <y>1770</y>
+     <x>1106</x>
+     <y>1843</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11754,8 +11720,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonGCurvesChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1005</x>
-     <y>1770</y>
+     <x>1149</x>
+     <y>1843</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11770,8 +11736,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonFocusPixelsIntMethodChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1177</x>
-     <y>67</y>
+     <x>1148</x>
+     <y>337</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11786,8 +11752,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonBadPixelsIntMethodChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1177</x>
-     <y>193</y>
+     <x>1148</x>
+     <y>428</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>
@@ -11802,8 +11768,8 @@ QGroupBox::indicator:checked:disabled {
    <slot>toolButtonBadPixelsChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1178</x>
-     <y>132</y>
+     <x>1139</x>
+     <y>388</y>
     </hint>
     <hint type="destinationlabel">
      <x>599</x>

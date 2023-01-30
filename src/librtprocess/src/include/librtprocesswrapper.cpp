@@ -10,8 +10,7 @@
 #if defined(__linux)
 #include <inttypes.h>
 #endif
-
-#include <stdint.h>
+#include <inttypes.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
