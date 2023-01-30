@@ -87,7 +87,10 @@ macx{
 # Windows, standard use with standard Qt download.
 # Else comment these lines!
 win32{
+
+INCLUDEPATH += "D:\\mingw64\\bin"
     QMAKE_CFLAGS += -O2 -fopenmp -mssse3 -msse3 -msse2 -msse -D_FILE_OFFSET_BITS=64 -std=c99 -ftree-vectorize
+    LIBS += -L"D:\\mingw64\\bin"
     LIBS += -llibgomp-1
     greaterThan(QT_MAJOR_VERSION, 5){
         QMAKE_CXXFLAGS += -fopenmp -std=c++17 -ftree-vectorize
@@ -102,15 +105,18 @@ win32{
 # Else comment these lines!
 #win32{
 #    INCLUDEPATH += \
-#        "C:\\msys64\\mingw64\\include\\c++\\9.2.0" \
-#        "C:\\msys64\\mingw64\\include" \
-#        "C:\\msys64\\mingw64\\qt5-static\\include" \
-#        "C:\\msys64\\mingw64\\qt5-static\\lib" \
-#        "C:\\msys64\\mingw64" \
-#        "C:\\msys64\\mingw64\\lib" \
-#        "C:\\msys64\\mingw64\\x86_64-w64-mingw32\\include" \
-#        "C:\\msys64\\mingw64\\x86_64-w64-mingw32\\lib" \
-#        "C:\\msys64\\mingw64\\bin"
+#        "D:\\llvm-mingw-15\\include\\c++\\9.2.0" \
+#        "D:\\llvm-mingw-15\\include" \
+#        "D:\\llvm-mingw-15\\qt5-static\\include" \
+#        "D:\\llvm-mingw-15\\qt5-static\\lib" \
+#        "D:\\llvm-mingw-15" \
+#        "D:\\llvm-mingw-15\\lib" \
+#        "D:\\llvm-mingw-15\\x86_64-w64-mingw32\\include" \
+#        "D:\\llvm-mingw-15\\x86_64-w64-mingw32\\lib" \
+#        "D:\\llvm-mingw-15\\bin"
+#    QMAKE_CC = D:\\llvm-mingw-15\\bin\\clang
+#    QMAKE_CXX = D:\\llvm-mingw-15\\bin\\clang++
+#    QMAKE_LINK = D:\\llvm-mingw-15\\bin\\clang++
 #    QMAKE_CFLAGS += -O3 -fopenmp -msse4.1 -mssse3 -msse3 -msse2 -msse -D_FILE_OFFSET_BITS=64 -std=c99 -ftree-vectorize
 #    QMAKE_CXXFLAGS += -static -static-libgcc -static-libstdc++ -Wl,-Bstatic -lws2_32 -lshell32 -luser32 -lkernel32 -lmingw32 -fopenmp -std=c++11 -ftree-vectorize
 #    LIBS += -lgomp
@@ -128,7 +134,6 @@ linux-g++*{
 ##############
 SOURCES += \
     ../../src/mlv/llrawproc/amaze-port.c \
-    ../../src/mlv/llrawproc/amaze_demosaic_RT.c \
     ../../src/mlv/llrawproc/chdk-dng.c \
     ../../src/mlv/llrawproc/dither.c \
     ../../src/mlv/llrawproc/kelvin.c \

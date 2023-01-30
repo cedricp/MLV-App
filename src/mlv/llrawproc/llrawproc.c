@@ -203,7 +203,7 @@ void applyLLRawProcObject(mlvObject_t * video, uint16_t * raw_image_buff, size_t
     }
 
     /* fix vertical stripes */
-    if (video->llrawproc->vertical_stripes)
+    if (video->llrawproc->vertical_stripes && !video->llrawproc->dual_iso)
     {
         fix_vertical_stripes(&video->llrawproc->stripe_corrections,
                              raw_image_buff,
@@ -315,7 +315,8 @@ void applyLLRawProcObject(mlvObject_t * video, uint16_t * raw_image_buff, size_t
                                video->llrawproc->diso_frblending,
                                video->llrawproc->chroma_smooth,
                                video->llrawproc->bad_pixels,
-                               video->llrawproc->diso_hstripesfix);
+                               video->llrawproc->diso_hstripesfix,
+                               video->llrawproc->vertical_stripes);
 
             /* for full20bit set diso levels and bit depth to 16 bit, needed for cDNG export */
             int bits_shift = 16 - raw_info.bits_per_pixel;

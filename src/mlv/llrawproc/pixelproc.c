@@ -125,7 +125,7 @@ void chroma_smooth(int method, uint16_t * image_data, int width, int height, int
             
         default:
 #ifndef STDOUT_SILENT
-            err_printf("Unsupported chroma smooth method\n");
+            printf("Unsupported chroma smooth method\n");
 #endif
             break;
     }
@@ -356,7 +356,7 @@ static int add_pixel_to_map(pixel_map * map, int x, int y)
 
 malloc_error:
 #ifndef STDOUT_SILENT
-    err_printf("malloc error\n");
+    printf("malloc error\n");
 #endif
     map->count = 0;
     map->capacity = 0;
@@ -1058,7 +1058,7 @@ void fix_focus_pixels(pixel_map * focus_pixel_map,
     if(raw2ev == NULL)
     {
 #ifndef STDOUT_SILENT
-        err_printf("raw2ev LUT error\n");
+        printf("raw2ev LUT error\n");
 #endif
         return;
     }
@@ -1279,7 +1279,7 @@ void fix_bad_pixels(pixel_map * bad_pixel_map,
     if(raw2ev == NULL)
     {
 #ifndef STDOUT_SILENT
-        err_printf("raw2ev LUT error\n");
+        printf("raw2ev LUT error\n");
 #endif
         return;
     }

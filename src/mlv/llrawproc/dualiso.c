@@ -46,6 +46,8 @@
 #include "timing.h"
 #include "kelvin.h"
 
+#include "../raw.h"
+
 #include <omp.h>
 #include <time.h>
 
@@ -249,7 +251,7 @@ int diso_get_preview(uint16_t * image_data, uint16_t width, uint16_t height, int
     else
     {
 #ifndef STDOUT_SILENT
-        err_printf("\nCould not detect dual ISO interlaced lines\n");
+        printf("\nCould not detect dual ISO interlaced lines\n");
 #endif
 
         for(int i = 0; i < 4; i++)
@@ -262,7 +264,7 @@ int diso_get_preview(uint16_t * image_data, uint16_t width, uint16_t height, int
     if(diso_check)
     {
 #ifndef STDOUT_SILENT
-        err_printf("\nDetected dual ISO interlaced lines\n");
+        printf("\nDetected dual ISO interlaced lines\n");
 #endif
 
         for(int i = 0; i < 4; i++)
@@ -461,8 +463,9 @@ static void white_detect(struct raw_info raw_info, uint16_t * image_data, int* w
     /* we assume 14-bit input data; out-of-range white levels may cause crash */
     *white_dark = COERCE(whites[0], 10000, 16383);
     *white_bright = COERCE(whites[1], 5000, 16383);
-
+#ifndef STDOUT_SILENT
     printf("White levels    : %d %d\n", *white_dark, *white_bright);
+#endif
 
     free(pixels[0]);
     free(pixels[1]);
@@ -632,22 +635,6 @@ static int identify_rggb_or_gbrg(struct raw_info raw_info, uint16_t * image_data
         }
     }
 
-    /* dump the histograms */
-    if (debug_rggb)
-    {
-        FILE* f = fopen("rggb.m", "w");
-        fprintf(f, "hists = [\n");
-        for (int i = 0; i < 16384; i++)
-        {
-            fprintf(f, "%d %d %d %d\n", hist[0][i], hist[1][i], hist[2][i], hist[3][i]);
-        }
-        fprintf(f, "];\n");
-        fprintf(f, "hold on; for i = 1:4, for j = i+1:4, plot(hists(:,i), hists(:,j), 'color', [0.5 0.5 0.5]); end; end;\n");
-        fprintf(f, "plot(hists(:,2), hists(:,3), 'r', hists(:,1), hists(:,4), 'g');\n");
-        fclose(f);
-        //if(system("octave --persist rggb.m"));
-    }
-
     /* compare cdf's */
     /* for rggb, greens are at y%2 != x%2, that is, 1 and 2 */
     /* for gbrg, greens are at y%2 == x%2, that is, 0 and 3 */
@@ -723,13 +710,6 @@ static int identify_bright_and_dark_fields(struct raw_info raw_info, uint16_t * 
      for (int i = 0; i < 16384; i++)
          hist_total += hist[0][i];
 
-     FILE* f = 0;
-     if (debug_bddb)
-     {
-         f = fopen("bddb.m", "w");
-         fprintf(f, "levels = [\n");
-     }
-
      /* choose the highest percentile that is not overexposed */
      /* but not higher than 99.8, to keep a tiny bit of robustness (specular highlights may play dirty tricks) */
      int acc[4] = {0};
@@ -751,11 +731,6 @@ static int identify_bright_and_dark_fields(struct raw_info raw_info, uint16_t * 
              }
          }
 
-         if (debug_bddb && changed)
-         {
-             fprintf(f, "%d %d %d %d %d\n", raw[0], raw[1], raw[2], raw[3], ref);
-         }
-
          if (ref < ref_off)
          {
              if (MAX(MAX(raw[0], raw[1]), MAX(raw[2], raw[3])) < black + (white-black) / 4)
@@ -773,17 +748,6 @@ static int identify_bright_and_dark_fields(struct raw_info raw_info, uint16_t * 
              /* stop when at least two accumulators reach clipping */
              break;
          }
-     }
-
-     if (debug_bddb)
-     {
-         fprintf(f, "];\n");
-         fprintf(f, "off = [%d %d %d %d]\n", off[0], off[1], off[2], off[3]);
-         fprintf(f, "ref = levels(:,end);\n");
-         fprintf(f, "plot(ref, levels(:,1) - off(1), ref, levels(:,2) - off(2), ref, levels(:,3) - off(3), ref, levels(:,4) - off(4));\n");
-         fprintf(f, "legend('0', '1', '2', '3');\n");
-         fclose(f);
-         //if(system("octave --persist bddb.m"));
      }
 
      for (int i = 0; i < 4; i++)
@@ -818,18 +782,25 @@ static int identify_bright_and_dark_fields(struct raw_info raw_info, uint16_t * 
 
      for (int i = 0; i < 4; i++)
          is_bright[i] = raw[i] > median_bright;
-
+#ifndef STDOUT_SILENT
      printf("ISO pattern     : %c%c%c%c %s\n", is_bright[0] ? 'B' : 'd', is_bright[1] ? 'B' : 'd', is_bright[2] ? 'B' : 'd', is_bright[3] ? 'B' : 'd', rggb ? "RGGB" : "GBRG");
+#endif
+
 
      if (is_bright[0] + is_bright[1] + is_bright[2] + is_bright[3] != 2)
      {
-         printf("Bright/dark detection error\n");
+#ifndef STDOUT_SILENT
+        printf("Bright/dark detection error\n");
+#endif
+
          return 0;
      }
 
      if (is_bright[0] == is_bright[2] || is_bright[1] == is_bright[3])
      {
-         printf("Interlacing method not supported\n");
+#ifndef STDOUT_SILENT
+        printf("Interlacing method not supported\n");
+#endif
          return 0;
      }
      return 1;
@@ -1173,7 +1144,10 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
     
     /* squeeze the dark image by deleting fields from the bright exposure */
     int yh = -1;
+#ifndef STDOUT_SILENT
     perf_clock_sub = clock();
+#endif
+
     for (int y = 0; y < h; y ++)
     {
         if (BRIGHT_ROW)
@@ -1196,13 +1170,19 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
         
         yh++;
     }
+#ifndef STDOUT_SILENT
     perf_clock_sub = clock()-perf_clock_sub;
     printf("AMAZE-squeeze_dark took %f seconds\n", ((double) perf_clock_sub) / CLOCKS_PER_SEC);
     fflush(stdout);
+#endif
+
     
     /* now the same for the bright exposure */
     yh = -1;
+
+#ifndef STDOUT_SILENT
     perf_clock_sub = clock();
+#endif
     for (int y = 0; y < h; y ++)
     {
         if (!BRIGHT_ROW)
@@ -1226,9 +1206,12 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
         yh++;
         if (yh >= h) break; /* just in case */
     }
+#ifndef STDOUT_SILENT
     perf_clock_sub = clock()-perf_clock_sub;
     printf("AMAZE-squeeze_bright took %f seconds\n", ((double) perf_clock_sub) / CLOCKS_PER_SEC);
     fflush(stdout);
+#endif
+
 #if 0
     void amaze_demosaic_RT(
                            float** rawData,    /* holds preprocessed pixel values, rawData[i][j] corresponds to the ith row and jth column */
@@ -1240,11 +1223,15 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
                            );
 #endif
     //IDK if AMaZE is actually thread safe, but I'm just going to assume not, rather than inspecting that huge mess of code
-    perf_clock_sub = clock();
+#ifndef STDOUT_SILENT
+        perf_clock_sub = clock();
+#endif
     demosaic(& (amazeinfo_t) { rawData, red, green, blue, 0, 0, w, h, 0, 0 });
+#ifndef STDOUT_SILENT
     perf_clock_sub = clock()-perf_clock_sub;
     printf("AMAZE-demosaic took %f seconds\n", ((double) perf_clock_sub) / CLOCKS_PER_SEC);
     fflush(stdout);
+#endif
 
     /* undo green channel scaling and clamp the other channels */
     //#pragma omp parallel for collapse(2)
@@ -1298,7 +1285,9 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
         previous_black = black;
     }
 
+#ifndef STDOUT_SILENT
     perf_clock_sub = clock();
+#endif
     #pragma omp parallel for schedule(static) default(none) shared(edge_direction, raw2ev,gray,is_bright, white_darkened, h, w, raw_info, raw_buffer_32, black, white, d0, edge_directions, fullres_curve, fullres_thr) reduction(+:not_shadow) reduction(+:deep_shadow) reduction(+:not_overexposed) reduction(+:semi_overexposed)
     for (int y = 5; y < h-5; y ++)
     {
@@ -1383,16 +1372,22 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
             edge_direction[x + y*w] = d_best;
         }
     }
+#ifndef STDOUT_SILENT
     perf_clock_sub = clock()-perf_clock_sub;
     printf("AMAZE-handle_subblacks took %f seconds\n", ((double) perf_clock_sub) / CLOCKS_PER_SEC);
     fflush(stdout);
+#endif
+
 #ifndef STDOUT_SILENT
     printf("Semi-overexposed: %.02f%%\n", semi_overexposed * 100.0 / (semi_overexposed + not_overexposed));
     printf("Deep shadows    : %.02f%%\n", deep_shadow * 100.0 / (deep_shadow + not_shadow));
 #endif
     //~ printf("Actual interpolation...\n");
 
+
+#ifndef STDOUT_SILENT
     perf_clock_sub = clock();
+#endif
     //#pragma omp parallel for
     for (int y = 2; y < h-2; y ++)
     {
@@ -1424,11 +1419,12 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
             x -= 2;
         }
     }
+#ifndef STDOUT_SILENT
     perf_clock_sub = clock()-perf_clock_sub;
     printf("AMAZE-actual_interpolation took %f seconds\n", ((double) perf_clock_sub) / CLOCKS_PER_SEC);
     fflush(stdout);
+#endif
 
-    
     //#pragma omp parallel for
     for (int i = 0; i < h; i++)
     {
@@ -1606,10 +1602,316 @@ static inline void hdr_chroma_smooth(struct raw_info raw_info, uint32_t * input,
             
         default:
 #ifndef STDOUT_SILENT
-            err_printf("Unsupported chroma smooth method\n");
+            printf("Unsupported chroma smooth method\n");
 #endif
             break;
     }
+}
+
+
+/**
+ * Fix vertical stripes (banding) from 5D Mark III (and maybe others).
+ *
+ * These stripes are periodic, they repeat every 8 pixels.
+ * It looks like some columns have different luma amplification;
+ * correction factors are somewhere around 0.98 - 1.02, maybe camera-specific, maybe depends on
+ * certain settings, I have no idea. So, this fix compares luma values within one pixel block,
+ * computes the correction factors (using median to reject outliers) and decides
+ * whether to apply the correction or not.
+ *
+ * For speed reasons:
+ * - Correction factors are computed from the first frame only.
+ * - Only channels with error greater than 0.2% are corrected.
+ */
+#define FIXP_ONE 65536
+#define FIXP_RANGE 65536
+
+static int stripes_coeffs[8] = {0};
+static int stripes_correction_needed = 0;
+
+#define PA ((int)(p->a))
+#define PB ((int)(p->b_lo | (p->b_hi << 12)))
+#define PC ((int)(p->c_lo | (p->c_hi << 10)))
+#define PD ((int)(p->d_lo | (p->d_hi << 8)))
+#define PE ((int)(p->e_lo | (p->e_hi << 6)))
+#define PF ((int)(p->f_lo | (p->f_hi << 4)))
+#define PG ((int)(p->g_lo | (p->g_hi << 2)))
+#define PH ((int)(p->h))
+
+#define SET_PA(x) { int v = (x); p->a = v; }
+#define SET_PB(x) { int v = (x); p->b_lo = v; p->b_hi = v >> 12; }
+#define SET_PC(x) { int v = (x); p->c_lo = v; p->c_hi = v >> 10; }
+#define SET_PD(x) { int v = (x); p->d_lo = v; p->d_hi = v >> 8; }
+#define SET_PE(x) { int v = (x); p->e_lo = v; p->e_hi = v >> 6; }
+#define SET_PF(x) { int v = (x); p->f_lo = v; p->f_hi = v >> 4; }
+#define SET_PG(x) { int v = (x); p->g_lo = v; p->g_hi = v >> 2; }
+#define SET_PH(x) { int v = (x); p->h = v; }
+
+#define RAW_MUL(p, x) ((((int)(p) - raw_info.black_level) * (int)(x) / FIXP_ONE) + raw_info.black_level)
+#define F2H(ev) COERCE((int)(FIXP_RANGE/2 + ev * FIXP_RANGE/2), 0, FIXP_RANGE-1)
+#define H2F(x) ((double)((x) - FIXP_RANGE/2) / (FIXP_RANGE/2))
+
+
+static void add_pixel(int hist[8][FIXP_RANGE], int num[8], int offset, int pa, int pb)
+{
+    int a = pa;
+    int b = pb;
+
+    if (MIN(a,b) < 32)
+        return; /* too noisy */
+
+    if (MAX(a,b) > raw_info.white_level / 1.1)
+        return; /* too bright */
+
+    /**
+     * compute correction factor for b, that makes it as bright as a
+     *
+     * first, work around quantization error (which causes huge spikes on histogram)
+     * by adding a small random noise component
+     * e.g. if raw value is 13, add some uniformly distributed noise,
+     * so the value will be between -12.5 and 13.5.
+     *
+     * this removes spikes on the histogram, thus canceling bias towards "round" values
+     */
+    double af = a + (rand() % 1024) / 1024.0 - 0.5;
+    double bf = b + (rand() % 1024) / 1024.0 - 0.5;
+    double factor = af / bf;
+    double ev = log2(factor);
+
+    /**
+     * add to histogram (for computing the median)
+     */
+    int weight = log2(a);
+    hist[offset][F2H(ev)] += weight;
+    num[offset] += weight;
+}
+
+
+static void detect_vertical_stripes_coeffs(struct raw_info raw_info, uint32_t * image_data, int force_correction)
+{
+    static int hist[8][FIXP_RANGE];
+    static int num[8];
+
+    memset(hist, 0, sizeof(hist));
+    memset(num, 0, sizeof(num));
+
+    /* compute 7 histograms: b./a, c./a ... h./a */
+    /* that is, adjust all columns to make them as bright as a */
+    /* process green pixels only, assuming the image is RGGB */
+
+    typedef raw_pixblock_14 raw_pixblock; //TODO: should we change depending on the source bits to raw_pixblock_12 or raw_pixblock_10?
+    raw_pixblock * row;
+    for (row = (raw_pixblock*)image_data; (void*)row < (void*)image_data + raw_info.pitch * raw_info.height; row += 2 * raw_info.pitch / sizeof(raw_pixblock))
+    {
+        /* first line is RG */
+        raw_pixblock * rg;
+        for (rg = row; (void*)rg < (void*)row + raw_info.pitch - sizeof(raw_pixblock); rg++)
+        {
+            /* next line is GB */
+            raw_pixblock * gb = rg + raw_info.pitch / sizeof(raw_pixblock);
+
+            raw_pixblock * p = rg;
+            int pb = PB - raw_info.black_level;
+            int pd = PD - raw_info.black_level;
+            int pf = PF - raw_info.black_level;
+            int ph = PH - raw_info.black_level;
+            p++;
+            int pb2 = PB - raw_info.black_level;
+            int pd2 = PD - raw_info.black_level;
+            int pf2 = PF - raw_info.black_level;
+            int ph2 = PH - raw_info.black_level;
+            p = gb;
+            //int pa = PA - raw_info.black_level;
+            int pc = PC - raw_info.black_level;
+            int pe = PE - raw_info.black_level;
+            int pg = PG - raw_info.black_level;
+            p++;
+            int pa2 = PA - raw_info.black_level;
+            int pc2 = PC - raw_info.black_level;
+            int pe2 = PE - raw_info.black_level;
+            int pg2 = PG - raw_info.black_level;
+
+            /**
+             * verification: introducing strong banding in one column
+             * should not affect the coefficients from the other columns
+             **/
+
+            //~ pe = pe * 1.1;
+            //~ pe2 = pe2 * 1.1;
+
+            /**
+             * Make all columns as bright as a2
+             * use linear interpolation, so when processing column b, for example,
+             * let bi = (b * 1 + b2 * 7) / (7+1)
+             * let ei = (e * 4 + e2 * 4) / (4+4)
+             * and so on, to avoid getting tricked by smooth gradients.
+             */
+
+            add_pixel(hist, num, 1, pa2, (pb * 1 + pb2 * 7) / 8);
+            add_pixel(hist, num, 2, pa2, (pc * 2 + pc2 * 6) / 8);
+            add_pixel(hist, num, 3, pa2, (pd * 3 + pd2 * 5) / 8);
+            add_pixel(hist, num, 4, pa2, (pe * 4 + pe2 * 4) / 8);
+            add_pixel(hist, num, 5, pa2, (pf * 5 + pf2 * 3) / 8);
+            add_pixel(hist, num, 6, pa2, (pg * 6 + pg2 * 2) / 8);
+            add_pixel(hist, num, 7, pa2, (ph * 7 + ph2 * 1) / 8);
+        }
+    }
+
+    int j,k;
+
+    int max[8] = {0};
+    for (j = 0; j < 8; j++)
+        for (k = 1; k < FIXP_RANGE-1; k++)
+            max[j] = MAX(max[j], hist[j][k]);
+
+    /* compute the median correction factor (this will reject outliers) */
+    for (j = 0; j < 8; j++)
+    {
+        if (num[j] < raw_info.frame_size / 128) continue;
+        int t = 0;
+        for (k = 0; k < FIXP_RANGE; k++)
+        {
+            t += hist[j][k];
+            if (t >= num[j]/2)
+            {
+                int c = pow(2, H2F(k)) * FIXP_ONE;
+                stripes_coeffs[j] = c;
+                break;
+            }
+        }
+    }
+
+#if 0
+    /* debug graphs */
+    FILE* f = fopen("raw2dng.m", "w");
+    fprintf(f, "h = {}; x = {}; c = \"rgbcmy\"; \n");
+    for (j = 2; j < 8; j++)
+    {
+        fprintf(f, "h{end+1} = [");
+        for (k = 1; k < FIXP_RANGE-1; k++)
+        {
+            fprintf(f, "%d ", hist[j][k]);
+        }
+        fprintf(f, "];\n");
+
+        fprintf(f, "x{end+1} = [");
+        for (k = 1; k < FIXP_RANGE-1; k++)
+        {
+            fprintf(f, "%f ", H2F(k) );
+        }
+        fprintf(f, "];\n");
+        fprintf(f, "plot(log2(%d/%d) + [0 0], [0 %d], ['*-' c(%d)]); hold on;\n", stripes_coeffs[j], FIXP_ONE, max[j], j-1);
+    }
+    fprintf(f, "for i = 1:6, plot(x{i}, h{i}, c(i)); hold on; end;");
+    fprintf(f, "axis([-0.05 0.05])");
+    fclose(f);
+    system("octave-cli --persist raw2dng.m");
+#endif
+
+    stripes_coeffs[0] = FIXP_ONE;
+
+    /* do we really need stripe correction, or it won't be noticeable? or maybe it's just computation error? */
+    stripes_correction_needed = 0;
+    for (j = 0; j < 8; j++)
+    {
+        double c = (double)stripes_coeffs[j] / FIXP_ONE;
+        if (c < 0.998 || c > 1.002)
+            stripes_correction_needed = 1;
+    }
+
+    if (stripes_correction_needed || force_correction)
+    {
+        printf("\n\nVertical stripes correction:\n");
+        for (j = 0; j < 8; j++)
+        {
+            if (stripes_coeffs[j])
+                printf("  %.5f", (double)stripes_coeffs[j] / FIXP_ONE);
+            else
+                printf("    1  ");
+        }
+        printf("\n");
+    }
+}
+
+static void apply_vertical_stripes_correction(struct raw_info raw_info, uint32_t * image_data)
+{
+    /**
+     * inexact white level will result in banding in highlights, especially if some channels are clipped
+     *
+     * so... we'll try to use a better estimation of white level *for this particular purpose*
+     * start with a gross under-estimation, then consider white = max(all pixels)
+     * just in case the exif one is way off
+     * reason:
+     *   - if there are no pixels above the true white level, it shouldn't hurt;
+     *     worst case, the brightest pixel(s) will be underexposed by 0.1 EV or so
+     *   - if there are, we will choose the true white level
+     */
+
+    int white = raw_info.white_level * 2 / 3;
+
+    typedef raw_pixblock_14 raw_pixblock; //TODO: should we change depending on the source bits to raw_pixblock_12 or raw_pixblock_10?
+    raw_pixblock * row;
+
+    for (row =image_data; (void*)row < (void*)image_data + raw_info.pitch * raw_info.height; row += raw_info.pitch / sizeof(raw_pixblock))
+    {
+        raw_pixblock * p;
+        for (p = row; (void*)p < (void*)row + raw_info.pitch; p++)
+        {
+            white = MAX(white, PA);
+            white = MAX(white, PB);
+            white = MAX(white, PC);
+            white = MAX(white, PD);
+            white = MAX(white, PE);
+            white = MAX(white, PF);
+            white = MAX(white, PG);
+            white = MAX(white, PH);
+        }
+    }
+
+    int black = raw_info.black_level;
+    for (row = image_data; (void*)row < (void*)image_data + raw_info.pitch * raw_info.height; row += raw_info.pitch / sizeof(raw_pixblock))
+    {
+        raw_pixblock * p;
+        for (p = row; (void*)p < (void*)row + raw_info.pitch; p++)
+        {
+            int pa = PA;
+            int pb = PB;
+            int pc = PC;
+            int pd = PD;
+            int pe = PE;
+            int pf = PF;
+            int pg = PG;
+            int ph = PH;
+
+            /**
+             * Thou shalt not exceed the white level (the exact one, not the exif one)
+             * otherwise you'll be blessed with banding instead of nice and smooth highlight recovery
+             *
+             * At very dark levels, you will introduce roundoff errors, so don't correct there
+             */
+
+            if (stripes_coeffs[0] && pa && pa < white && pa > black + 64) SET_PA(MIN(white, RAW_MUL(pa, stripes_coeffs[0])));
+            if (stripes_coeffs[1] && pb && pb < white && pa > black + 64) SET_PB(MIN(white, RAW_MUL(pb, stripes_coeffs[1])));
+            if (stripes_coeffs[2] && pc && pc < white && pa > black + 64) SET_PC(MIN(white, RAW_MUL(pc, stripes_coeffs[2])));
+            if (stripes_coeffs[3] && pd && pd < white && pa > black + 64) SET_PD(MIN(white, RAW_MUL(pd, stripes_coeffs[3])));
+            if (stripes_coeffs[4] && pe && pe < white && pa > black + 64) SET_PE(MIN(white, RAW_MUL(pe, stripes_coeffs[4])));
+            if (stripes_coeffs[5] && pf && pf < white && pa > black + 64) SET_PF(MIN(white, RAW_MUL(pf, stripes_coeffs[5])));
+            if (stripes_coeffs[6] && pg && pg < white && pa > black + 64) SET_PG(MIN(white, RAW_MUL(pg, stripes_coeffs[6])));
+            if (stripes_coeffs[7] && ph && ph < white && pa > black + 64) SET_PH(MIN(white, RAW_MUL(ph, stripes_coeffs[7])));
+        }
+    }
+}
+void fix_vertical_stripes_diso(struct raw_info raw_info, uint32_t * image_data, int force_correction)
+{
+    /* for speed: only detect correction factors from the first frame */
+    static int first_time = 1;
+    if (first_time)
+    {
+        detect_vertical_stripes_coeffs(raw_info, image_data, force_correction);
+        first_time = 0;
+    }
+
+    apply_vertical_stripes_correction(raw_info, image_data);
 }
 
 static void find_and_fix_bad_pixels(struct raw_info raw_info, uint32_t * raw_buffer_32, int dark_noise, int bright_noise, int* raw2ev, int* ev2raw, int fix_bad_pixels_dual)
@@ -1618,8 +1920,10 @@ static void find_and_fix_bad_pixels(struct raw_info raw_info, uint32_t * raw_buf
     int h = raw_info.height;
 
     int black = raw_info.black_level;
-
+#ifndef STDOUT_SILENT
     printf("Looking for hot/cold pixels...\n");
+#endif
+
 
     /* hot pixel map */
     uint32_t* hotpixel = malloc(w * h * sizeof(uint32_t));
@@ -1716,11 +2020,14 @@ static void find_and_fix_bad_pixels(struct raw_info raw_info, uint32_t * raw_buf
             if (hotpixel[x + y*w])
                 raw_set_pixel20(x, y, debug_bad_pixels ? black : hotpixel[x + y*w]);
 
+#ifndef STDOUT_SILENT
     if (hot_pixels)
         printf("Hot pixels      : %d\n", hot_pixels);
 
     if (cold_pixels)
         printf("Cold pixels     : %d\n", cold_pixels);
+#endif
+
 
     free(hotpixel);
 }
@@ -1751,7 +2058,7 @@ static int soft_film_bakedwb(double raw, double exposure, int in_black, int in_w
     return round(raw_adjusted + fast_randn05());
 }
 
-int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int interp_method, int use_alias_map, int use_fullres, int chroma_smooth_method, int fix_bad_pixels_dual, int use_stripe_fix)
+int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int interp_method, int use_alias_map, int use_fullres, int chroma_smooth_method, int fix_bad_pixels_dual, int use_stripe_fix, int vertical_stripes_fix)
 {
 
 //    int thread_count;
@@ -1776,11 +2083,17 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     int h = raw_info.height;
 
     /* RGGB or GBRG? */
+
+#ifndef STDOUT_SILENT
     perf_clock = clock();
+#endif
     int rggb = identify_rggb_or_gbrg(raw_info, image_data);
+#ifndef STDOUT_SILENT
     perf_clock = clock()-perf_clock;
     printf("identify_rggb_or_gbrg took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
     fflush(stdout);
+#endif
+
 
     if (!rggb) /* this code assumes RGGB, so we need to skip one line */
     {
@@ -1792,15 +2105,19 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
         raw_info.height--;
         h--;
     }
+
+#ifndef STDOUT_SILENT
     perf_clock = clock();
+#endif
     if (!identify_bright_and_dark_fields(raw_info, image_data, rggb))
     {
         return 0;
     }
+#ifndef STDOUT_SILENT
     perf_clock = clock()-perf_clock;
     printf("identify_bright_and_dark_fields took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
     fflush(stdout);
-
+#endif
     int ret = 1;
 
     /* will use 20-bit processing and 16-bit output, instead of 14 */
@@ -1811,11 +2128,17 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     int white = raw_info.white_level;
 
     int white_bright = white;
+
+#ifndef STDOUT_SILENT
     perf_clock = clock();
+#endif
     white_detect(raw_info, image_data, &white, &white_bright, is_bright);
+#ifndef STDOUT_SILENT
     perf_clock = clock()-perf_clock;
     printf("white_detect took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
     fflush(stdout);
+#endif
+
 
     white *= 64;
     white_bright *= 64;
@@ -1864,8 +2187,10 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     double noise_avg;
     for (int y = 0; y < 4; y++)
         compute_black_noise(raw_info, image_data, 8, raw_info.active_area.x1 - 8, raw_info.active_area.y1/4*4 + 20 + y, raw_info.active_area.y2 - 20, 1, 4, &noise_avg, &noise_std[y], raw_get_pixel16);
-
+#ifndef STDOUT_SILENT
     printf("Noise levels    : %.02f %.02f %.02f %.02f (14-bit)\n", noise_std[0], noise_std[1], noise_std[2], noise_std[3]);
+#endif
+
     double dark_noise = MIN(MIN(noise_std[0], noise_std[1]), MIN(noise_std[2], noise_std[3]));
     double bright_noise = MAX(MAX(noise_std[0], noise_std[1]), MAX(noise_std[2], noise_std[3]));
     double dark_noise_ev = log2(dark_noise);
@@ -1912,7 +2237,10 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     const double fullres_transition = 4;
     const double fullres_thr = 0.8;
 
+
+#ifndef STDOUT_SILENT
     perf_clock = clock();
+#endif
     for (int i = 0; i < (1<<20); i++)
     {
         double ev2 = log2(MAX(i/64.0 - black/64.0, 1));
@@ -1920,41 +2248,63 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
         double f = (c2+1) / 2;
         fullres_curve[i] = f;
     }
+#ifndef STDOUT_SILENT
     perf_clock = clock()-perf_clock;
     printf("fullres mixing curve took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
     fflush(stdout);
+#endif
+
 
     //~ printf("Exposure matching...\n");
     /* estimate ISO difference between bright and dark exposures */
     double corr_ev = 0;
     int white_darkened = white_bright;
 
+
+#ifndef STDOUT_SILENT
     perf_clock = clock();
+#endif
     int ok = match_exposures(raw_info, raw_buffer_32, &corr_ev, &white_darkened, is_bright);
+#ifndef STDOUT_SILENT
     perf_clock = clock()-perf_clock;
     printf("match_exposures took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
     fflush(stdout);
+#endif
 
     if (!ok) goto err;
 
     /* run a second black subtract pass, to fix whatever our funky processing may do to blacks */
+
+#ifndef STDOUT_SILENT
     perf_clock = clock();
+#endif
     black_subtract_simple(raw_info, raw_buffer_32, raw_info.active_area.x1, raw_info.active_area.y1);
+#ifndef STDOUT_SILENT
     perf_clock = clock()-perf_clock;
     printf("black_subtract_simple took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
     fflush(stdout);
+#endif
+
 
     /* analyze the image to see if black level looks OK; adjust if needed */
+
+#ifndef STDOUT_SILENT
     perf_clock = clock();
+#endif
     check_black_level(raw_info, raw_buffer_32);
+#ifndef STDOUT_SILENT
     perf_clock = clock()-perf_clock;
     printf("check_black_level took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
     fflush(stdout);
+#endif
+
 
     /* estimate dynamic range */
     double lowiso_dr = log2(white - black) - dark_noise_ev;
     double highiso_dr = log2(white_bright - black) - bright_noise_ev;
+#ifndef STDOUT_SILENT
     printf("Dynamic range   : %.02f (+) %.02f => %.02f EV (in theory)\n", lowiso_dr, highiso_dr, highiso_dr + corr_ev);
+#endif
 
     /* correction factor for the bright exposure, which was just darkened */
     double corr = pow(2, corr_ev);
@@ -1963,17 +2313,32 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     bright_noise /= corr;
     bright_noise_ev -= corr_ev;
 
+
+#ifndef STDOUT_SILENT
     perf_clock = clock();
+#endif
     if (fix_bad_pixels_dual)
     {
         /* best done before interpolation */
         find_and_fix_bad_pixels(raw_info, raw_buffer_32, dark_noise, bright_noise, raw2ev, ev2raw, fix_bad_pixels_dual);
     }
+#ifndef STDOUT_SILENT
     perf_clock = clock()-perf_clock;
     printf("find_and_fix_bad_pixels took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
     fflush(stdout);
-
+#endif
     perf_clock = clock();
+    //TODO: Find the right place tu put this fix on the pipeline
+    if(vertical_stripes_fix){
+        int force = vertical_stripes_fix > 1;
+        fix_vertical_stripes_diso(raw_info, raw_buffer_32, force);
+    }
+    perf_clock = clock()-perf_clock;
+    printf("vertical_stripes_fix took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#ifndef STDOUT_SILENT
+    perf_clock = clock();
+#endif
     if(interp_method == 0)
     {
         amaze_interpolate(raw_info, raw_buffer_32, dark, bright, black, white, white_darkened, is_bright);
@@ -1982,20 +2347,31 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     {
         mean23_interpolate(raw_info, raw_buffer_32, dark, bright, black, white, white_darkened, is_bright);
     }
+#ifndef STDOUT_SILENT
     perf_clock = clock()-perf_clock;
     printf("amaze_mean_interpolate took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
     fflush(stdout);
 
+#endif
+
+#ifndef STDOUT_SILENT
     perf_clock = clock();
+#endif
     border_interpolate(raw_info, raw_buffer_32, dark, bright, is_bright);
+#ifndef STDOUT_SILENT
     perf_clock = clock()-perf_clock;
     printf("border_interpolate took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
     fflush(stdout);
+#endif
 
+#ifndef STDOUT_SILENT
     perf_clock = clock();
+#endif
     if (use_stripe_fix)
     {
+#ifndef STDOUT_SILENT
         printf("Horizontal stripe fix...\n");
+#endif
         int* delta = malloc(w * sizeof(delta[0]));
 
         /* adjust dark lines to match the bright ones */
@@ -2024,7 +2400,9 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
 
             if (ABS(med_delta) > 200*16)
             {
+#ifndef STDOUT_SILENT
                 printf("%d: offset too large (%d)\n", y, med_delta);
+#endif
                 continue;
             }
 
@@ -2036,9 +2414,11 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
         }
         free(delta);
     }
+#ifndef STDOUT_SILENT
     perf_clock = clock()-perf_clock;
     printf("use_stripe_fix took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
     fflush(stdout);
+#endif
 
     /* reconstruct a full-resolution image (discard interpolated fields whenever possible) */
     /* this has full detail and lowest possible aliasing, but it has high shadow noise and color artifacts when high-iso starts clipping */
@@ -2046,33 +2426,38 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     const int offset_threshold = 100000; /* Represents the maximum difference between the "same" pixel from exposure-corrected bright and dark images to be considered normal. */
     if (use_fullres)
     {
+
+#ifndef STDOUT_SILENT
         printf("Full-res reconstruction...\n");
         perf_clock = clock();
+#endif
         #pragma omp parallel for schedule(static) default(none) shared(fullres, offset_threshold, is_bright, dark, bright, white_darkened, h, w)
         for (int y = 0; y < h; y ++)
         {
             for (int x = 0; x < w; x ++)
             {
+                uint32_t d = dark[x + y*w];
+                uint32_t f = bright[x + y*w];
                 if (BRIGHT_ROW)
                 {
-                    uint32_t f = bright[x + y*w];
                     /* if the brighter copy is overexposed, the guessed pixel for sure has higher brightness */
-                    if (ABS(((int)f)-((int)dark[x + y*w])) > offset_threshold){
-                        fullres[x + y*w] = dark[x + y*w];
+                    if (ABS(((int)f)-((int)d)) > offset_threshold){
+                        fullres[x + y*w] = d;
                     }else{
-                        fullres[x + y*w] = f < (uint32_t)white_darkened ? f : MAX(f, dark[x + y*w]);
+                        fullres[x + y*w] = f < (uint32_t)white_darkened ? f : MAX(f, d);
                     }
                 }
                 else
                 {
-                    fullres[x + y*w] = dark[x + y*w];
+                    fullres[x + y*w] = MAX(f, d);
                 }
             }
         }
-
+#ifndef STDOUT_SILENT
         perf_clock = clock()-perf_clock;
         printf("Reconstruction took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
         fflush(stdout);
+#endif
     }
 
     /* mix the two images */
@@ -2093,22 +2478,34 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     /* maybe expose a tuning factor? (preference towards resolution or colors) */
     overlap -= MIN(3, overlap - 3);
 
+#ifndef STDOUT_SILENT
     printf("ISO overlap     : %.1f EV (approx)\n", overlap);
-
+#endif
     if (overlap < 0.5)
     {
+
+#ifndef STDOUT_SILENT
         printf("Overlap error\n");
+#endif
         goto err;
     }
+#ifndef STDOUT_SILENT
     else if (overlap < 2)
     {
         printf("Overlap too small, use a smaller ISO difference for better results.\n");
     }
+#endif
 
+#ifndef STDOUT_SILENT
     printf("Half-res blending...\n");
+#endif
+
 
     /* mixing curve */
+
+#ifndef STDOUT_SILENT
     perf_clock = clock();
+#endif
     double max_ev = log2(white/64 - black/64);
     static double mix_curve[1<<20];
 
@@ -2144,15 +2541,21 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
             halfres[x + y*w] = ev2raw[mixed];
         }
     }
+#ifndef STDOUT_SILENT
     perf_clock = clock()-perf_clock;
     printf("mixing_curve took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
     fflush(stdout);
+#endif
 
+
+#ifndef STDOUT_SILENT
     perf_clock = clock();
+#endif
     if (chroma_smooth_method)
     {
+#ifndef STDOUT_SILENT
         printf("Chroma smoothing...\n");
-
+#endif
         if (use_fullres)
         {
             fullres_smooth = malloc(w * h * sizeof(uint32_t));
@@ -2164,20 +2567,22 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
 
         hdr_chroma_smooth(raw_info, fullres, fullres_smooth, chroma_smooth_method, raw2ev, ev2raw);
         hdr_chroma_smooth(raw_info, halfres, halfres_smooth, chroma_smooth_method, raw2ev, ev2raw);
-
     }
+#ifndef STDOUT_SILENT
     perf_clock = clock()-perf_clock;
     printf("chroma_smooth_method took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
     fflush(stdout);
+#endif
 
     /* trial and error - too high = aliasing, too low = noisy */
     int ALIAS_MAP_MAX = 15000;
 
-    perf_clock = clock();
     if (use_alias_map)
     {
+#ifndef STDOUT_SILENT
         printf("Building alias map...\n");
-
+    perf_clock = clock();
+#endif
         uint16_t* alias_aux = malloc(w * h * sizeof(uint16_t));
 
         /* build the aliasing maps (where it's likely to get aliasing) */
@@ -2203,8 +2608,9 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
         }
 
         memcpy(alias_aux, alias_map, w * h * sizeof(uint16_t));
-
+#ifndef STDOUT_SILENT
         printf("Filtering alias map...\n");
+#endif
         for (int y = 6; y < h-6; y ++)
         {
             for (int x = 6; x < w-6; x ++)
@@ -2244,8 +2650,9 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
                 alias_aux[x + y * w] = -kth_smallest_int(neighbours, COUNT(neighbours), 5);
             }
         }
-
+#ifndef STDOUT_SILENT
         printf("Smoothing alias map...\n");
+#endif
         /* gaussian blur */
         for (int y = 6; y < h-6; y ++)
         {
@@ -2317,10 +2724,12 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
         }
 
         free(alias_aux);
-    }
+#ifndef STDOUT_SILENT
     perf_clock = clock()-perf_clock;
     printf("alias_map took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
     fflush(stdout);
+#endif
+    }
 
     /* where the image is overexposed? */
     overexposed = malloc(w * h * sizeof(uint16_t));
@@ -2365,8 +2774,10 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     compute_black_noise32(raw_info, raw_buffer_32, 8, raw_info.active_area.x1 - 8, raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0], raw_get_pixel32);
     double ideal_noise_std = noise_std[0];
 
+#ifndef STDOUT_SILENT
     printf("Final blending...\n");
     perf_clock = clock();
+#endif
     for (int y = 0; y < h; y ++)
     {
         for (int x = 0; x < w; x ++)
@@ -2436,19 +2847,21 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
             raw_set_pixel32(x, y, ev2raw[output]);
         }
     }
+#ifndef STDOUT_SILENT
     perf_clock = clock()-perf_clock;
     printf("final_blending took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
     fflush(stdout);
 
-
-
     perf_clock = clock();
+#endif
     /* let's see how much dynamic range we actually got */
     if (raw_info.active_area.x1)
     {
         compute_black_noise32(raw_info, raw_buffer_32, 8, raw_info.active_area.x1 - 8, raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0], raw_get_pixel32);
+#ifndef STDOUT_SILENT
         printf("Noise level     : %.02f (20-bit), ideally %.02f\n", noise_std[0], ideal_noise_std);
         printf("Dynamic range   : %.02f EV (cooked)\n", log2(white - black) - log2(noise_std[0]));
+#endif
     }
 
     /* run a final black subtract pass, to fix whatever our funky processing may do to blacks */
@@ -2498,7 +2911,9 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
         double multipliers[3] = {custom_wb[0], custom_wb[1], custom_wb[2]};
         double temperature, green;
         ufraw_multipliers_to_kelvin_green(multipliers, &temperature, &green);
+#ifndef STDOUT_SILENT
         printf("AsShotNeutral   : %.2f 1 %.2f, %dK/g=%.2f (%s)\n", 1/custom_wb[0], 1/custom_wb[2], (int)temperature, green, AsShotNeutral_method);
+#endif
     }
 
     if (soft_film_ev > 0)
@@ -2513,8 +2928,9 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
         };
 
         double max_wb = MAX(baked_wb[0], baked_wb[2]);
+#ifndef STDOUT_SILENT
         printf("Soft-film curve : +%.2f EV baked at WB %.2f %.2f %.2f\n", log2(exposure), baked_wb[0], baked_wb[1], baked_wb[2]);
-
+#endif
         for (int y = 0; y < h; y++)
         {
             for (int x = 0; x < w; x++)
@@ -2528,9 +2944,11 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
             }
         }
     }
+#ifndef STDOUT_SILENT
     perf_clock = clock()-perf_clock;
     printf("final corrections took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
     fflush(stdout);
+#endif
 
 end:
 
@@ -2761,108 +3179,6 @@ static void white_balance_gray(struct raw_info raw_info, uint16_t * image_data, 
         }
     }
 
-    if (debug_wb)
-    {
-        FILE* f = fopen("wb.m", "w");
-        for (int k = 0; k < 3; k++)
-        {
-            fprintf(f, "lores(:,:,%d) = [\n", k+1);
-            for (int yl = 0; yl < hl; yl++)
-            {
-                for (int xl = 0; xl < wl; xl++)
-                {
-                    fprintf(f, "%f ", lores[k][xl + yl*wl]);
-                }
-                fprintf(f, "\n");
-            }
-            fprintf(f, "];\n");
-        }
-
-        fprintf(f, "histblur = [\n");
-        for (int b = 0; b < WB_RANGE; b++)
-        {
-            for (int r = 0; r < WB_RANGE; r++)
-            {
-                fprintf(f, "%d ", histblur[r + b*WB_RANGE]);
-            }
-            fprintf(f, "\n");
-        }
-        fprintf(f, "];\n");
-        fprintf(f, "kelvin = [");
-        for (int k = 1000; k <= 20000; k += 100)
-        {
-            double gains[3];
-            ufraw_kelvin_green_to_multipliers(k, 1, gains);
-            fprintf(f, "%f %f ", WB_ORIGIN - log2(gains[0]) * WB_EV, WB_ORIGIN - log2(gains[2]) * WB_EV);
-            ufraw_kelvin_green_to_multipliers(k, 2, gains);
-            fprintf(f, "%f %f ", WB_ORIGIN - log2(gains[0]) * WB_EV, WB_ORIGIN - log2(gains[2]) * WB_EV);
-            ufraw_kelvin_green_to_multipliers(k, 0.5, gains);
-            fprintf(f, "%f %f\n", WB_ORIGIN - log2(gains[0]) * WB_EV, WB_ORIGIN - log2(gains[2]) * WB_EV);
-        }
-        fprintf(f, "];\n");
-        fprintf(f, "gm = [");
-        for (float g = -2; g <= 2; g += 0.1)
-        {
-            double glin = powf(2, g);
-            double gains[3];
-            ufraw_kelvin_green_to_multipliers(1000, glin, gains);
-            fprintf(f, "%f %f ", WB_ORIGIN - log2(gains[0]) * WB_EV, WB_ORIGIN - log2(gains[2]) * WB_EV);
-            ufraw_kelvin_green_to_multipliers(2000, glin, gains);
-            fprintf(f, "%f %f ", WB_ORIGIN - log2(gains[0]) * WB_EV, WB_ORIGIN - log2(gains[2]) * WB_EV);
-            ufraw_kelvin_green_to_multipliers(3000, glin, gains);
-            fprintf(f, "%f %f ", WB_ORIGIN - log2(gains[0]) * WB_EV, WB_ORIGIN - log2(gains[2]) * WB_EV);
-            ufraw_kelvin_green_to_multipliers(5000, glin, gains);
-            fprintf(f, "%f %f ", WB_ORIGIN - log2(gains[0]) * WB_EV, WB_ORIGIN - log2(gains[2]) * WB_EV);
-            ufraw_kelvin_green_to_multipliers(7000, glin, gains);
-            fprintf(f, "%f %f ", WB_ORIGIN - log2(gains[0]) * WB_EV, WB_ORIGIN - log2(gains[2]) * WB_EV);
-            ufraw_kelvin_green_to_multipliers(20000, glin, gains);
-            fprintf(f, "%f %f\n", WB_ORIGIN - log2(gains[0]) * WB_EV, WB_ORIGIN - log2(gains[2]) * WB_EV);
-        }
-        fprintf(f, "];\n");
-        fprintf(f, "imshow(histblur,[]); colormap jet; hold on;\n");
-        fprintf(f, "rbest = %d; bbest = %d;\n", rbest+1, bbest+1);
-        fprintf(f, "plot(rbest, bbest, '.w')\n");
-        fprintf(f, "plot([-5.01, 5.01]*%d+%d, [bbest, bbest], 'color', 'white')\n", WB_EV, WB_ORIGIN);
-        fprintf(f, "plot([rbest, rbest], [-5, 5]*%d+%d,'color', 'white')\n", WB_EV, WB_ORIGIN);
-
-        fprintf(f, "kred = kelvin(:,1); kblue = kelvin(:,2);\n");
-        fprintf(f, "kredg = kelvin(:,3); kblueg = kelvin(:,4);\n");
-        fprintf(f, "kredm = kelvin(:,5); kbluem = kelvin(:,6);\n");
-        fprintf(f, "plot(kred, kblue, 'w', 'linewidth', 4)\n");
-        fprintf(f, "plot(kred(1:10:end), kblue(1:10:end), '.w')\n");
-        fprintf(f, "plot(kredg, kblueg, 'm', 'linewidth', 2)\n");
-        fprintf(f, "plot(kredg(1:10:end), kblueg(1:10:end), '.m')\n");
-        fprintf(f, "plot(kredm, kbluem, 'g', 'linewidth', 2)\n");
-        fprintf(f, "plot(kredm(1:10:end), kbluem(1:10:end), '.g')\n");
-        fprintf(f, "gred1k = gm(:,1); gblue1k = gm(:,2);\n");
-        fprintf(f, "gred2k = gm(:,3); gblue2k = gm(:,4);\n");
-        fprintf(f, "gred3k = gm(:,5); gblue3k = gm(:,6);\n");
-        fprintf(f, "gred5k = gm(:,7); gblue5k = gm(:,8);\n");
-        fprintf(f, "gred7k = gm(:,9); gblue7k = gm(:,10);\n");
-        fprintf(f, "gred20k = gm(:,11); gblue20k = gm(:,12);\n");
-        fprintf(f, "plot(gred1k, gblue1k, 'r')\n");
-        fprintf(f, "plot(gred2k, gblue2k, 'r', 'linewidth', 2)\n");
-        fprintf(f, "plot(gred3k, gblue3k, 'y', 'linewidth', 2)\n");
-        fprintf(f, "plot(gred5k, gblue5k, 'w', 'linewidth', 4)\n");
-        fprintf(f, "plot(gred7k, gblue7k, 'b', 'linewidth', 2)\n");
-        fprintf(f, "plot(gred20k, gblue20k, 'b')\n");
-        fprintf(f, "text(gred1k(end)+1, gblue1k(end)-2, '1000K', 'color', 'white', 'fontweight', 'bold')\n");
-        fprintf(f, "text(gred2k(end)+1, gblue2k(end)-2, '2000K', 'color', 'white', 'fontweight', 'bold')\n");
-        fprintf(f, "text(gred3k(end)+1, gblue3k(end)-2, '3000K', 'color', 'white', 'fontweight', 'bold')\n");
-        fprintf(f, "text(gred5k(end)+1, gblue5k(end)+3, '5000K', 'color', 'white', 'fontweight', 'bold')\n");
-        fprintf(f, "text(gred7k(end)+1, gblue7k(end)+2, '7000K', 'color', 'white', 'fontweight', 'bold')\n");
-        fprintf(f, "text(gred20k(end)+1, gblue20k(end)+2, '20000K', 'color', 'white', 'fontweight', 'bold')\n");
-        fprintf(f, "text(kredg(end)-5, kblueg(end)+5, 'g=2', 'color', 'white', 'fontweight', 'bold')\n");
-        fprintf(f, "text(kred(end)-5, kblue(end)+5, 'g=1', 'color', 'white', 'fontweight', 'bold')\n");
-        fprintf(f, "text(kredm(end)-10, kbluem(end)+5, 'g=0.5', 'color', 'white', 'fontweight', 'bold')\n");
-        fprintf(f, "xlabel('red balance (-3..3 EV)'); ylabel('blue balance (3..-3 EV)')\n");
-
-        fprintf(f, "set(gca,'position',[0 0.04 1 0.96])\n");
-        fprintf(f, "print -dpng wb.png\n");
-        fclose(f);
-        if(system("octave wb.m"));
-    }
-
     *red_balance = powf(2, (float) -(rbest - WB_ORIGIN) / WB_EV);
     *blue_balance = powf(2, (float) -(bbest - WB_ORIGIN) / WB_EV);
 
@@ -2899,8 +3215,9 @@ static int black_subtract_simple(struct raw_info raw_info, uint32_t * raw_buffer
     free(samples); samples = 0;
 
     int black_delta = raw_info.black_level - new_black;
-
+#ifndef STDOUT_SILENT
     printf("Black adjust    : %.1f\n", black_delta / 64.0);
+#endif
     raw_info.black_level -= black_delta;
     raw_info.white_level -= black_delta;
 
@@ -3010,14 +3327,17 @@ static void check_black_level(struct raw_info raw_info, uint32_t * raw_buffer_32
     black_level_histograms(raw_info, raw_buffer_32, hist_eroded, hist_dilated);
 
     int guessed_black14 = guess_black_level(hist_eroded, hist_dilated);
-
+#ifndef STDOUT_SILENT
     if (hist_eroded[black14] == 0)
     {
         printf("Black level     : %d might be too low (guess: %d).\n", black14, guessed_black14);
     }
-    else if (hist_dilated[black14] > hist_eroded[black14] / 10000)
+#endif
+    if (hist_dilated[black14] > hist_eroded[black14] / 10000)
     {
+#ifndef STDOUT_SILENT
         printf("Black level     : %d is too high, using %d\n", black14, guessed_black14);
+#endif
         raw_info.black_level = guessed_black14 * 64;
     }
 }
