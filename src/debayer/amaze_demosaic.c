@@ -126,8 +126,8 @@
         int winx = inputdata->winx; int winy = inputdata->winy; /* crop window for demosaicing */
         int winw = inputdata->winw; int winh = inputdata->winh;
 
-        clock_t	t1,t2;
-        t1 = clock();
+//        clock_t	t1,t2;
+//        t1 = clock();
 
     #define HCLIP(x) x //is this still necessary???
         //min(clip_pt,x)
@@ -1486,7 +1486,7 @@
 
     #undef TS
 
-    t2 = clock() - t1;
+//    t2 = clock() - t1;
     //printf("Amaze took %.2f s\n", (double)t2 / CLOCKS_PER_SEC);
 
     }

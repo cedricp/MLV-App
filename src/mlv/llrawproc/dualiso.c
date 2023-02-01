@@ -29,6 +29,8 @@
 #include "wirth.h"
 #include <pthread.h>
 #include "../../debayer/debayer.h"
+#include <time.h>
+#include <omp.h>
 
 #define EV_RESOLUTION 65536
 #ifndef M_PI
@@ -42,6 +44,10 @@
 
 #define LOCK(x) static pthread_mutex_t x = PTHREAD_MUTEX_INITIALIZER; pthread_mutex_lock(&x);
 #define UNLOCK(x) pthread_mutex_unlock(&(x));
+
+#ifdef PERF_INFO
+clock_t perf_clock, perf_sub_clock;
+#endif
 
 //this is just meant to be fast
 int diso_get_preview(uint16_t * image_data, uint16_t width, uint16_t height, int32_t black, int32_t white, int diso_check)
@@ -988,7 +994,9 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
 {
     int w = raw_info.width;
     int h = raw_info.height;
-    
+#ifdef PERF_INFO
+    perf_sub_clock = clock();
+#endif
     int* squeezed = malloc(h * sizeof(int));
     memset(squeezed, 0, h * sizeof(int));
     
@@ -996,7 +1004,7 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
     float** red     = malloc(h * sizeof(red[0]));
     float** green   = malloc(h * sizeof(green[0]));
     float** blue    = malloc(h * sizeof(blue[0]));
-    
+
     //#pragma omp parallel for
 #pragma omp parallel for schedule(static) default(none) shared(h, w, rawData, red, green, blue)
     for (int i = 0; i < h; i++)
@@ -1008,7 +1016,16 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
         green[i]   = malloc(wx * sizeof(green[0][0]));
         blue[i]    = malloc(wx * sizeof(blue[0][0]));
     }
-    
+#ifdef PERF_INFO
+    perf_sub_clock = clock()-perf_sub_clock;
+    printf("\t memory allocation took %f seconds\n", ((double) perf_sub_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
+
+#ifdef PERF_INFO
+    perf_sub_clock = clock();
+#endif
+
     /* squeeze the dark image by deleting fields from the bright exposure */
     int yh = -1;
     for (int y = 0; y < h; y ++)
@@ -1060,6 +1077,12 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
         yh++;
         if (yh >= h) break; /* just in case */
     }
+
+#ifdef PERF_INFO
+    perf_sub_clock = clock()-perf_sub_clock;
+    printf("\t squeeze dark/bright images took %f seconds\n", ((double) perf_sub_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
 #if 0
     void amaze_demosaic_RT(
                            float** rawData,    /* holds preprocessed pixel values, rawData[i][j] corresponds to the ith row and jth column */
@@ -1071,11 +1094,98 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
                            );
 #endif
     //IDK if AMaZE is actually thread safe, but I'm just going to assume not, rather than inspecting that huge mess of code
+#ifdef PERF_INFO
+    perf_sub_clock = clock();
+#endif
 
-    demosaic(& (amazeinfo_t) { rawData, red, green, blue, 0, 0, w, h, 0, 0 });
+    int threads;
+#pragma omp parallel
+{
+    #pragma omp master
+    {
+       threads = omp_get_num_threads();
+    }
+    //printf("number of threads = %d\n", threads /*omp_get_thread_num()*/);
+}
+    /* If threads is < 2 just do a normal amaze */
+    if (threads < 2)
+    {
+        /* run the Amaze */
+        demosaic(& (amazeinfo_t) {
+                     rawData,
+                     red,
+                     green,
+                     blue,
+                     0, 0,
+                     w, h,
+                     0,
+                     black /*0*/ }); //Should start with 0, or better with black?
+    }
+    /* Else do multithreading */
+    else
+    {
+        int startchunk_y[threads];
+        int endchunk_y[threads];
 
+        /* How big each thread's chunk is, multiple of 2 - or debayer
+         * would start on wrong pixel and magenta stripes appear */
+        int chunk_height = h / threads;
+        chunk_height -= chunk_height % 2;
+
+        /* To small chunk heights bring AMaZE module to crash */
+        while( chunk_height <= 32 )
+        {
+            if( threads <= 1 ) break;
+            threads--;
+            chunk_height = h / threads;
+            chunk_height -= chunk_height % 2;
+        }
+
+        /* Calculate chunks of image for each thread */
+        for (int thread = 0; thread < threads; ++thread)
+        {
+            startchunk_y[thread] = chunk_height * thread;
+            endchunk_y[thread] = chunk_height * (thread + 1);
+        }
+
+        /* Last chunk must reach end of frame */
+        endchunk_y[threads-1] = h;
+        amazeinfo_t amaze_arguments[threads];
+
+    #pragma omp parallel
+    {
+            int thread = omp_get_thread_num();
+
+            /* Amaze arguments */
+            amaze_arguments[thread] = (amazeinfo_t) {
+                rawData,
+                red,
+                green,
+                blue,
+                /* Crop out a part for each thread */
+                0, startchunk_y[thread],    /* crop window for demosaicing */
+                w, (endchunk_y[thread] - startchunk_y[thread]),
+                0,
+                0 };
+            /* Create pthread! */
+            demosaic(&amaze_arguments[thread]);
+    #pragma omp barrier
+
+
+    }
+}
+
+    //demosaic(& (amazeinfo_t) { rawData, red, green, blue, 0, 0, w, h, 0, 0 });
+#ifdef PERF_INFO
+    perf_sub_clock = clock()-perf_sub_clock;
+    printf("\t demosaic took %f seconds\n", ((double) perf_sub_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
     
     /* undo green channel scaling and clamp the other channels */
+#ifdef PERF_INFO
+    perf_sub_clock = clock();
+#endif
     //#pragma omp parallel for collapse(2)
 #pragma omp parallel for schedule(static) default(none) shared(green, red, blue, h, w, black)
     for (int y = 0; y < h; y ++)
@@ -1087,8 +1197,16 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
             blue[y][x] = COERCE(blue[y][x], 0, 0xFFFFF);
         }
     }
+#ifdef PERF_INFO
+    perf_sub_clock = clock()-perf_sub_clock;
+    printf("\t undo green channel scaling and clamp the other channels took %f seconds\n", ((double) perf_sub_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
 #ifndef STDOUT_SILENT
     printf("Edge-directed interpolation...\n");
+#endif
+#ifdef PERF_INFO
+    perf_sub_clock = clock();
 #endif
     //~ printf("Grayscale...\n");
     /* convert to grayscale and de-squeeze for easier processing */
@@ -1107,7 +1225,7 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
     for (int y = 0; y < h; y ++)
         for (int x = 0; x < w; x ++)
             edge_direction[x + y*w] = d0;
-    
+
     double * fullres_curve = build_fullres_curve(black);
     
     //~ printf("Cross-correlation...\n");
@@ -1124,7 +1242,6 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
     /* handle sub-black values (negative EV) */
     int* ev2raw = ev2raw_0 + 10*EV_RESOLUTION;
     
-
     if(black != previous_black)
     {
         build_ev2raw_lut(raw2ev, ev2raw_0, black, white);
@@ -1215,11 +1332,20 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
             edge_direction[x + y*w] = d_best;
         }
     }
+
+#ifdef PERF_INFO
+    perf_sub_clock = clock()-perf_sub_clock;
+    printf("\t Edge-directed interpolation took %f seconds\n", ((double) perf_sub_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
 #ifndef STDOUT_SILENT
     printf("Semi-overexposed: %.02f%%\n", semi_overexposed * 100.0 / (semi_overexposed + not_overexposed));
     printf("Deep shadows    : %.02f%%\n", deep_shadow * 100.0 / (deep_shadow + not_shadow));
 #endif
     //~ printf("Actual interpolation...\n");
+#ifdef PERF_INFO
+    perf_sub_clock = clock();
+#endif
 
     //#pragma omp parallel for
 #pragma omp parallel for schedule(static) default(none) shared(w, red, green, edge_direction, squeezed, blue, bright,dark, is_bright, h, raw2ev,ev2raw,raw_info,raw_buffer_32)
@@ -1253,7 +1379,14 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
             x -= 2;
         }
     }
-    
+#ifdef PERF_INFO
+    perf_sub_clock = clock()-perf_sub_clock;
+    printf("\t actual interpolation took %f seconds\n", ((double) perf_sub_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
+#ifdef PERF_INFO
+    perf_sub_clock = clock();
+#endif
     //#pragma omp parallel for
     for (int i = 0; i < h; i++)
     {
@@ -1270,6 +1403,11 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
     free(blue); blue = 0;
     free(gray); gray = 0;
     free(edge_direction);
+#ifdef PERF_INFO
+    perf_sub_clock = clock()-perf_sub_clock;
+    printf("\t free memory took %f seconds\n", ((double) perf_sub_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
 }
 
 static inline void mean23_interpolate(struct raw_info raw_info, uint32_t * raw_buffer_32, uint32_t* dark, uint32_t* bright, int black, int white, int white_darkened, int * is_bright)
@@ -2318,8 +2456,16 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     
     if (w <= 0 || h <= 0) return 0;
 
+#ifdef PERF_INFO
+    perf_clock = clock();
+#endif
     /* RGGB or GBRG? */
-    int rggb = identify_rggb_or_gbrg(raw_info, image_data);
+    int rggb = identify_rggb_or_gbrg(raw_info, image_data);    
+#ifdef PERF_INFO
+    perf_clock = clock()-perf_clock;
+    printf("identify_rggb_or_gbrg took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
     
     if (!rggb) /* this code assumes RGGB, so we need to skip one line */
     {
@@ -2331,9 +2477,15 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     }
     
     int is_bright[4];
-    
+#ifdef PERF_INFO
+    perf_clock = clock();
+#endif
     if (!identify_bright_and_dark_fields(raw_info, image_data, rggb, is_bright)) return 0;
-    
+#ifdef PERF_INFO
+    perf_clock = clock()-perf_clock;
+    printf("identify_bright_and_dark_fields %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
     int ret = 0;
     
     /* will use 20-bit processing and 16-bit output, instead of 14 */
@@ -2344,7 +2496,15 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     int white = raw_info.white_level;
     
     int white_bright = white;
+#ifdef PERF_INFO
+    perf_clock = clock();
+#endif
     white_detect(raw_info, image_data, &white, &white_bright, is_bright);
+#ifdef PERF_INFO
+    perf_clock = clock()-perf_clock;
+    printf("white_detect took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
     white *= 64;
     white_bright *= 64;
     raw_info.white_level = white;
@@ -2388,17 +2548,34 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
 
     double noise_std[4];
     double dark_noise, bright_noise, dark_noise_ev, bright_noise_ev;
+#ifdef PERF_INFO
+    perf_clock = clock();
+#endif
     double noise_avg = compute_noise(raw_info, image_data, noise_std, &dark_noise, &bright_noise, &dark_noise_ev, &bright_noise_ev);
-    
+#ifdef PERF_INFO
+    perf_clock = clock()-perf_clock;
+    printf("compute_noise took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
+#ifdef PERF_INFO
+    perf_clock = clock();
+#endif
     /* promote from 14 to 20 bits (original raw buffer holds 14-bit values stored as uint16_t) */
     uint32_t * raw_buffer_32 = convert_to_20bit(raw_info, image_data);
-    
+#ifdef PERF_INFO
+    perf_clock = clock()-perf_clock;
+    printf("convert_to_20bit took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
     /* we have now switched to 20-bit, update noise numbers */
     dark_noise *= 64;
     bright_noise *= 64;
     dark_noise_ev += 6;
     bright_noise_ev += 6;
     
+#ifdef PERF_INFO
+    perf_clock = clock();
+#endif
     /* dark and bright exposures, interpolated */
     uint32_t* dark   = malloc(w * h * sizeof(uint32_t));
     uint32_t* bright = malloc(w * h * sizeof(uint32_t));
@@ -2438,8 +2615,13 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     /* fullres mixing curve */
     /* fullres mixing curve */
     static double fullres_curve[1<<20];
+#ifdef PERF_INFO
+    perf_clock = clock()-perf_clock;
+    printf("allocate memory took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
 
-#ifndef STDOUT_SILENT
+#ifdef PERF_INFO
     perf_clock = clock();
 #endif
     for (int i = 0; i < (1<<20); i++)
@@ -2449,9 +2631,9 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
         double f = (c2+1) / 2;
         fullres_curve[i] = f;
     }
-#ifndef STDOUT_SILENT
+#ifdef PERF_INFO
     perf_clock = clock()-perf_clock;
-    printf("fullres mixing curve took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
+    printf("fullres curve initialization took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
     fflush(stdout);
 #endif
 
@@ -2459,8 +2641,15 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     /* estimate ISO difference between bright and dark exposures */
     double corr_ev = 0;
     int white_darkened = white_bright;
-
+#ifdef PERF_INFO
+    perf_clock = clock();
+#endif
     int expo_matched = match_exposures(raw_info, raw_buffer_32, &corr_ev, &white_darkened, is_bright);
+#ifdef PERF_INFO
+    perf_clock = clock()-perf_clock;
+    printf("match_exposures took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
 #ifndef STDOUT_SILENT
     if(expo_matched)
     {
@@ -2492,10 +2681,23 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
 //    }
 
     if(vertical_stripes_fix){
+#ifdef PERF_INFO
+    perf_clock = clock();
+#endif
         int force = vertical_stripes_fix > 1;
         fix_vertical_stripes_diso(raw_info, raw_buffer_32, force);
+
+#ifdef PERF_INFO
+    perf_clock = clock()-perf_clock;
+    printf("fix_vertical_stripes_diso took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
     }
 
+#ifdef PERF_INFO
+    perf_clock = clock();
+    printf("Interpolation started:\n");
+#endif
     if(interp_method == 0)
     {
         amaze_interpolate(raw_info, raw_buffer_32, dark, bright, black, white, white_darkened, is_bright);
@@ -2504,10 +2706,85 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     {
         mean23_interpolate(raw_info, raw_buffer_32, dark, bright, black, white, white_darkened, is_bright);
     }
-
+#ifdef PERF_INFO
+    perf_clock = clock()-perf_clock;
+    printf("interpolation took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
+#ifdef PERF_INFO
+    perf_clock = clock();
+#endif
     border_interpolate(raw_info, raw_buffer_32, dark, bright, is_bright);
+#ifdef PERF_INFO
+    perf_clock = clock()-perf_clock;
+    printf("border_interpolate took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
+    //TODO:
+    static const int use_horizontal_stripe_fix = 0;
+    if (use_horizontal_stripe_fix)
+    {
+#ifdef PERF_INFO
+    perf_clock = clock();
+#endif
+        printf("Horizontal stripe fix...\n");
+        int* delta = malloc(w * sizeof(delta[0]));
 
-    if (use_fullres) fullres_reconstruction(raw_info, fullres, dark, bright, white_darkened, is_bright);
+        /* adjust dark lines to match the bright ones */
+        for (int y = raw_info.active_area.y1; y < raw_info.active_area.y2; y ++)
+        {
+            /* apply a constant offset (estimated from unclipped areas) */
+            int delta_num = 0;
+            for (int x = raw_info.active_area.x1; x < raw_info.active_area.x2; x ++)
+            {
+                int b = bright[x + y*w];
+                int d = dark[x + y*w];
+                if (MAX(b,d) < white_darkened)
+                {
+                    delta[delta_num++] = b - d;
+                }
+            }
+
+            if (delta_num < 200)
+            {
+                //~ printf("%d: too few points (%d)\n", y, delta_num);
+                continue;
+            }
+
+            /* compute median difference */
+            int med_delta = median_int_wirth(delta, delta_num);
+
+            if (ABS(med_delta) > 200*16)
+            {
+                printf("%d: offset too large (%d)\n", y, med_delta);
+                continue;
+            }
+
+            /* shift the dark lines */
+            for (int x = 0; x < w; x ++)
+            {
+                dark[x + y*w] = COERCE(dark[x + y*w] + med_delta, 0, 0xFFFFF);
+            }
+        }
+        free(delta);
+#ifdef PERF_INFO
+    perf_clock = clock()-perf_clock;
+    printf("Horizontal stripe fix took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
+    }
+
+    if (use_fullres){
+#ifdef PERF_INFO
+    perf_clock = clock();
+#endif
+        fullres_reconstruction(raw_info, fullres, dark, bright, white_darkened, is_bright);
+#ifdef PERF_INFO
+    perf_clock = clock()-perf_clock;
+    printf("identify_bright_and_dark_fields took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
+    }
 
     //New mem space for the smoothed versions
     if (chroma_smooth_method)
@@ -2518,29 +2795,71 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
         }
         halfres_smooth = malloc(w * h * sizeof(uint32_t));
     }
-    if(mix_images(raw_info, fullres, fullres_smooth, halfres, halfres_smooth, alias_map, dark, bright, overexposed, dark_noise, white_darkened, corr_ev, lowiso_dr, black, white, chroma_smooth_method, use_fullres))
+#ifdef PERF_INFO
+    perf_clock = clock();
+#endif
+    int mix_res = mix_images(raw_info, fullres, fullres_smooth, halfres, halfres_smooth, alias_map, dark, bright, overexposed, dark_noise, white_darkened, corr_ev, lowiso_dr, black, white, chroma_smooth_method, use_fullres);
+#ifdef PERF_INFO
+    perf_clock = clock()-perf_clock;
+    printf("mix_images took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
+    if(mix_res)
     {
+#ifdef PERF_INFO
+    perf_clock = clock();
+#endif
         /* let's check the ideal noise levels (on the halfres image, which in black areas is identical to the bright one) */
         //#pragma omp parallel for collapse(2)
         for (int y = 3; y < h-2; y ++)
             for (int x = 2; x < w-2; x ++)
                 raw_set_pixel32(x, y, bright[x + y*w]);
         compute_black_noise(raw_info, image_data, 8, raw_info.active_area.x1 - 8, raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0]);
+#ifdef PERF_INFO
+    perf_clock = clock()-perf_clock;
+    printf("compute_black_noise took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
 #ifndef STDOUT_SILENT
         double ideal_noise_std = noise_std[0];
 #endif
+#ifdef PERF_INFO
+    perf_clock = clock();
+#endif
         final_blend(raw_info, raw_buffer_32, fullres, fullres_smooth, halfres_smooth, dark, bright, overexposed, alias_map, black, white, dark_noise, use_fullres);
-
+#ifdef PERF_INFO
+    perf_clock = clock()-perf_clock;
+    printf("final_blend took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
+#ifdef PERF_INFO
+    perf_clock = clock();
+#endif
         /* let's see how much dynamic range we actually got */
-        compute_black_noise(raw_info, image_data, 8, raw_info.active_area.x1 - 8, raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0]);
+        compute_black_noise(raw_info, image_data, 8, raw_info.active_area.x1 - 8, raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0]); 
+#ifdef PERF_INFO
+    perf_clock = clock()-perf_clock;
+    printf("compute_black_noise took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
 #ifndef STDOUT_SILENT
         printf("Noise level     : %.02f (20-bit), ideally %.02f\n", noise_std[0], ideal_noise_std);
         printf("Dynamic range   : %.02f EV (cooked)\n", log2(white - black) - log2(noise_std[0]));
 #endif
+#ifdef PERF_INFO
+    perf_clock = clock();
+#endif
         convert_20_to_16bit(raw_info, image_data, raw_buffer_32);
+#ifdef PERF_INFO
+    perf_clock = clock()-perf_clock;
+    printf("convert_20_to_16bit took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
         ret = 1;
     }
-
+#ifdef PERF_INFO
+    perf_clock = clock();
+#endif
     if (!rggb) /* back to GBRG */
     {
         raw_info.active_area.y1--;
@@ -2558,6 +2877,11 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     free(raw_buffer_32);
     if (fullres_smooth && fullres_smooth != fullres) free(fullres_smooth);
     if (halfres_smooth && halfres_smooth != halfres) free(halfres_smooth);
+#ifdef PERF_INFO
+    perf_clock = clock()-perf_clock;
+    printf("free memory took %f seconds\n\n", ((double) perf_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
     return ret;
 }
 
