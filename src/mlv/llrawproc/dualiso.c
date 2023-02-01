@@ -1666,7 +1666,7 @@ static inline void build_alias_map(struct raw_info raw_info, uint16_t* alias_map
     
     /* make it grayscale */
     //#pragma omp parallel for collapse(2)
-#pragma omp parallel for schedule(static) default(none) shared(h, w, alias_map) collapse(2)
+#pragma omp parallel for schedule(static) collapse(2)
     for (int y = 2; y < h-2; y += 2)
     {
         for (int x = 2; x < w-2; x += 2)
@@ -1904,7 +1904,7 @@ static inline void final_blend(struct raw_info raw_info, uint32_t* raw_buffer_32
         printf("Final blending...\n");
 #endif
     //#pragma omp parallel for collapse(2)
-#pragma omp parallel for schedule(static) default(none) shared(bright, dark, overexposed, h, w, fullres_curve, black, dark_noise,raw_buffer_32, raw_info, alias_map, halfres_smooth, fullres, fullres_smooth, raw2ev, ev2raw, use_fullres) collapse(2)
+#pragma omp parallel for schedule(static)  collapse(2)
     for (int y = 0; y < h; y ++)
     {
         for (int x = 0; x < w; x ++)
@@ -2414,7 +2414,7 @@ static void find_and_fix_bad_pixels(struct raw_info raw_info, uint32_t * raw_buf
     }
 
     /* apply the correction */
-    #pragma omp parallel for schedule(static) default(none) collapse(2)
+    #pragma omp parallel for schedule(static) collapse(2)
     for (int y = 0; y < h; y ++)
         for (int x = 0; x < w; x ++)
             if (hotpixel[x + y*w])
