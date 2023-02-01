@@ -303,7 +303,7 @@ static void white_detect(struct raw_info raw_info, uint16_t * image_data, int* w
     /* collect all the pixels and find the k-th max, thus ignoring hot pixels */
     /* change the sign in order to use kth_smallest_int */
     //#pragma omp parallel for collapse(2)
-//#pragma omp parallel for schedule(static) default(none) shared(raw_info, image_data, max_pix, counts, pixels, is_bright)
+#pragma omp parallel for schedule(static) default(none) shared(raw_info, image_data, max_pix, counts, pixels, is_bright) collapse(2)
     for (int y = raw_info.active_area.y1; y < raw_info.active_area.y2; y += 3)
     {
         for (int x = raw_info.active_area.x1; x < raw_info.active_area.x2; x += 3)
@@ -313,7 +313,6 @@ static void white_detect(struct raw_info raw_info, uint16_t * image_data, int* w
 #define BIN_IDX is_bright[y%4]
             counts[BIN_IDX] = MIN(counts[BIN_IDX], max_pix-1);
             pixels[BIN_IDX][counts[BIN_IDX]] = -pix;
-#pragma omp atomic
             counts[BIN_IDX]++;
 #undef BIN_IDX
         }
@@ -341,13 +340,12 @@ static void compute_black_noise(struct raw_info raw_info, uint16_t * image_data,
     int num = 0;
     /* compute average level */
     //#pragma omp parallel for collapse(2)
-//#pragma omp parallel for schedule(static) default(none) shared(raw_info, image_data,y1,y2,dy,dx,x1,x2,num) reduction(+:black)
+#pragma omp parallel for schedule(static) default(none) shared(raw_info, image_data,y1,y2,dy,dx,x1,x2) reduction(+:black) reduction(+:num)
     for (int y = y1; y < y2; y += dy)
     {
         for (int x = x1; x < x2; x += dx)
         {
             black += raw_get_pixel(x, y);
-#pragma omp atomic
             num++;
         }
     }
@@ -432,6 +430,7 @@ static float randn05_cache[1024];
 void fast_randn_init()
 {
     int i;
+    #pragma omp parallel for schedule(static) default(none) shared(randn05_cache)
     for (i = 0; i < 1024; i++)
     {
         randn05_cache[i] = RANDN / 2;
@@ -464,20 +463,19 @@ static int identify_rggb_or_gbrg(struct raw_info raw_info, uint16_t * image_data
     
     /* to simplify things, analyze an identical number of bright and dark lines */
     //#pragma omp parallel for collapse(2)
-//#pragma omp parallel for schedule(static) default(none) shared(raw_info, image_data, y0, h, w,hist)
+#pragma omp parallel for schedule(static) default(none) shared(raw_info, image_data, y0, h, w,hist) collapse(2)
     for (int y = y0; y < h/4*4; y++)
     {
         for (int x = 0; x < w; x++){
-#pragma omp atomic
             hist[(y%2)*2 + (x%2)][raw_get_pixel16(x,y) & 16383]++;
         }
     }
     
     /* compute cdf */
+#pragma omp parallel for schedule(static,1) num_threads(4) default(none) shared(hist)
     for (int k = 0; k < 4; k++)
     {
         int acc = 0;
-//#pragma omp parallel for schedule(static) default(none) shared(hist,k) reduction(+:acc)
         for (int i = 0; i < 16384; i++)
         {
             acc += hist[k][i];
@@ -490,7 +488,7 @@ static int identify_rggb_or_gbrg(struct raw_info raw_info, uint16_t * image_data
     /* for gbrg, greens are at y%2 == x%2, that is, 0 and 3 */
     double diffs_rggb = 0;
     double diffs_gbrg = 0;
-    //#pragma omp parallel for
+#pragma omp parallel for schedule(static) default(none) shared(hist) reduction(+:diffs_rggb) reduction(+:diffs_gbrg)
     for (int i = 0; i < 16384; i++)
     {
         diffs_rggb += ABS(hist[1][i] - hist[2][i]);
@@ -545,7 +543,7 @@ static int identify_bright_and_dark_fields(struct raw_info raw_info, uint16_t * 
     int y0 = (raw_info.active_area.y1 + 3) & ~3;
     
     /* to simplify things, analyze an identical number of bright and dark lines */
-//#pragma omp parallel for schedule(static) default(none) shared(raw_info, image_data, y0,h,w,hist)
+#pragma omp parallel for schedule(static) default(none) shared(raw_info, image_data, y0,h,w,hist) collapse(2)
     for (int y = y0; y < h/4*4; y++)
     {
         for (int x = 0; x < w; x++)
@@ -553,7 +551,6 @@ static int identify_bright_and_dark_fields(struct raw_info raw_info, uint16_t * 
             if ((x%2) != (y%2))
             {
                 /* only check the green pixels */
-#pragma omp atomic
                 hist[y%4][raw_get_pixel16(x,y) & 16383]++;
             }
         }
@@ -674,7 +671,7 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     memset(bright, 0, w * h * sizeof(bright[0]));
     
     //#pragma omp parallel for
-//#pragma omp parallel for schedule(static) default(none) shared(raw_info, raw_buffer_32, is_bright, y0,h,w,black,dark,bright,clip,clip0)
+#pragma omp parallel for schedule(static) default(none) shared(raw_info, raw_buffer_32, is_bright, y0,h,w,black,dark,bright,clip,clip0)
     for (int y = y0; y < h-2; y += 3)
     {
         int* native = BRIGHT_ROW ? bright : dark;
@@ -709,16 +706,18 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     
     /* median_bright */
     int n = 0;
-//#pragma omp parallel for schedule(static) default(none) shared(is_bright,bright,clip, y0,h,w,n,tmp)
+
+// This one and the next are tricky to parallelize, n values must follow the order to serve as tmp vector index. Could be rewritten so tmp is 2 dimensions
+//#pragma omp parallel for schedule(static) default(none) shared(is_bright,bright,clip, y0,h,w,n,tmp) collapse(2)
     for (int y = y0; y < h-2; y += 3)
     {
         for (int x = 0; x < w; x += 3)
         {
             int b = bright[x + y*w];
-            if (b >= clip) continue;
-#pragma omp atomic
-            n++;
-            tmp[n] = b;
+            if (b < clip){
+                n++;
+                tmp[n] = b;
+            };
         }
     }
     int bmed = median_int_wirth(tmp, n);
@@ -738,10 +737,11 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
         {
             int d = dark[x + y*w];
             int b = bright[x + y*w];
-            if (b >= clip) continue;
-#pragma omp atomic
-            n++;
-            tmp[n] = d;
+            if (b < clip) {
+                //#pragma omp atomic
+                n++;
+                tmp[n] = d;
+            }
         }
     }
     int dmed = median_int_wirth(tmp, n);
@@ -776,8 +776,11 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     double b = 0;
     
     int best_score = 0;
-    for (double ev = 0; ev < 6; ev += 0.002)
+    //for (double ev = 0; ev < 6; ev += 0.002)
+#pragma omp parallel for schedule(static) default(none) shared(hi_n,dmed,bmed,hi_dark,hi_bright,best_score,a,b)
+    for (int ev_int = 0; ev_int < 6000; ev_int += 2)
     {
+        double ev = ev_int*0.001;
         double test_a = pow(2, -ev);
         double test_b = dmed - bmed * test_a;
         
@@ -809,7 +812,7 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     /* apply the correction */
     double b20 = b * 16;
     //#pragma omp parallel for collapse(2)
-//#pragma omp parallel for schedule(static) default(none) shared(black20, is_bright, h, w, b20, raw_buffer_32, raw_info, a)
+#pragma omp parallel for schedule(static) default(none) shared(black20, is_bright, h, w, b20, raw_buffer_32, raw_info, a) collapse(2)
     for (int y = 0; y < h; y ++)
     {
         for (int x = 0; x < w; x ++)
@@ -861,7 +864,7 @@ static inline uint32_t * convert_to_20bit(struct raw_info raw_info, uint16_t * i
     uint32_t * raw_buffer_32 = malloc(w * h * sizeof(raw_buffer_32[0]));
     
     //#pragma omp parallel for collapse(2)
-#pragma omp parallel for schedule(static) default(none) shared(raw_info,raw_buffer_32, h,w,image_data)
+#pragma omp parallel for schedule(static) default(none) shared(raw_info,raw_buffer_32, h,w,image_data) collapse(2)
     for (int y = 0; y < h; y ++)
         for (int x = 0; x < w; x ++)
             raw_buffer_32[x + y*w] = raw_get_pixel_14to20(x, y);
@@ -1170,8 +1173,6 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
             /* Create pthread! */
             demosaic(&amaze_arguments[thread]);
     #pragma omp barrier
-
-
     }
 }
 
@@ -1187,7 +1188,7 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
     perf_sub_clock = clock();
 #endif
     //#pragma omp parallel for collapse(2)
-#pragma omp parallel for schedule(static) default(none) shared(green, red, blue, h, w, black)
+#pragma omp parallel for schedule(static) default(none) shared(green, red, blue, h, w, black) collapse(2)
     for (int y = 0; y < h; y ++)
     {
         for (int x = 0; x < w; x ++)
@@ -1212,7 +1213,7 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
     /* convert to grayscale and de-squeeze for easier processing */
     uint32_t * gray = malloc(w * h * sizeof(gray[0]));
     //#pragma omp parallel for collapse(2)
-#pragma omp parallel for schedule(static) default(none) shared(gray, green, red, blue, h, w, squeezed)
+#pragma omp parallel for schedule(static) default(none) shared(gray, green, red, blue, h, w, squeezed) collapse(2)
     for (int y = 0; y < h; y ++)
         for (int x = 0; x < w; x ++)
             gray[x + y*w] = green[squeezed[y]][x]/2 + red[squeezed[y]][x]/4 + blue[squeezed[y]][x]/4;
@@ -1221,7 +1222,7 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
     uint8_t* edge_direction = malloc(w * h * sizeof(edge_direction[0]));
     int d0 = COUNT(edge_directions)/2;
     //#pragma omp parallel for collapse(2)
-#pragma omp parallel for schedule(static) default(none) shared(edge_direction, green, red, blue, h, w,d0)
+#pragma omp parallel for schedule(static) default(none) shared(edge_direction, green, red, blue, h, w,d0) collapse(2)
     for (int y = 0; y < h; y ++)
         for (int x = 0; x < w; x ++)
             edge_direction[x + y*w] = d0;
@@ -1388,6 +1389,7 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
     perf_sub_clock = clock();
 #endif
     //#pragma omp parallel for
+    #pragma omp parallel for schedule(static) default(none) shared(rawData, red, green, blue, h)
     for (int i = 0; i < h; i++)
     {
         free(rawData[i]);
@@ -1495,25 +1497,27 @@ static inline void border_interpolate(struct raw_info raw_info, uint32_t * raw_b
         uint32_t* native = BRIGHT_ROW ? bright : dark;
         uint32_t* interp = BRIGHT_ROW ? dark : bright;
         
+#pragma omp parallel for schedule(static) default(none) shared(raw_info, raw_buffer_32, interp, native, w, y)
         for (int x = 0; x < w; x ++)
         {
             interp[x + y * w] = raw_get_pixel32(x, y+2);
             native[x + y * w] = raw_get_pixel32(x, y);
         }
     }
-    
+
     for (int y = h-4; y < h; y ++)
     {
         uint32_t* native = BRIGHT_ROW ? bright : dark;
         uint32_t* interp = BRIGHT_ROW ? dark : bright;
-        
+#pragma omp parallel for schedule(static) default(none) shared(raw_info, raw_buffer_32, interp, native, w, y)
         for (int x = 0; x < w; x ++)
         {
             interp[x + y * w] = raw_get_pixel32(x, y-2);
             native[x + y * w] = raw_get_pixel32(x, y);
         }
     }
-    
+
+#pragma omp parallel for schedule(static) default(none) shared(raw_info, raw_buffer_32, w, h, bright, dark, is_bright)
     for (int y = 2; y < h; y ++)
     {
         uint32_t* native = BRIGHT_ROW ? bright : dark;
@@ -1545,7 +1549,7 @@ static inline void fullres_reconstruction(struct raw_info raw_info, uint32_t * f
     printf("Full-res reconstruction...\n");
 #endif
     //#pragma omp parallel for collapse(2)
-#pragma omp parallel for schedule(static) default(none) shared(fullres, offset_threshold, is_bright, dark, bright, white_darkened, h, w)
+#pragma omp parallel for schedule(static) default(none) shared(fullres, offset_threshold, is_bright, dark, bright, white_darkened, h, w) collapse(2)
     for (int y = 0; y < h; y ++)
     {
         for (int x = 0; x < w; x ++)
@@ -1586,6 +1590,7 @@ static inline void build_alias_map(struct raw_info raw_info, uint16_t* alias_map
     /* do this by comparing fullres and halfres images */
     /* if the difference is small, we'll prefer halfres for less noise, otherwise fullres for less aliasing */
     //#pragma omp parallel for collapse(2)
+#pragma omp parallel for schedule(static) default(none) shared(fullres_curve, fullres_smooth, halfres_smooth, h, w, fullres_thr, dark_noise, bright, raw2ev, alias_map) collapse(2)
     for (int y = 0; y < h; y ++)
     {
         for (int x = 0; x < w; x ++)
@@ -1609,7 +1614,7 @@ static inline void build_alias_map(struct raw_info raw_info, uint16_t* alias_map
 #ifndef STDOUT_SILENT
     printf("Filtering alias map...\n");
 #endif
-    //#pragma omp parallel for collapse(2)
+#pragma omp parallel for schedule(static) default(none) shared(fullres_curve, h, w, fullres_thr, bright, alias_map, alias_aux) collapse(2)
     for (int y = 6; y < h-6; y ++)
     {
         for (int x = 6; x < w-6; x ++)
@@ -1636,6 +1641,7 @@ static inline void build_alias_map(struct raw_info raw_info, uint16_t* alias_map
 #endif
     /* gaussian blur */
     //#pragma omp parallel for collapse(2)
+#pragma omp parallel for schedule(static) default(none) shared(fullres_curve, h, w, fullres_thr, bright, alias_map, alias_aux) collapse(2)
     for (int y = 6; y < h-6; y ++)
     {
         for (int x = 6; x < w-6; x ++)
@@ -1660,6 +1666,7 @@ static inline void build_alias_map(struct raw_info raw_info, uint16_t* alias_map
     
     /* make it grayscale */
     //#pragma omp parallel for collapse(2)
+#pragma omp parallel for schedule(static) default(none) shared(h, w, alias_map) collapse(2)
     for (int y = 2; y < h-2; y += 2)
     {
         for (int x = 2; x < w-2; x += 2)
@@ -1792,7 +1799,7 @@ static inline int mix_images(struct raw_info raw_info, uint32_t* fullres, uint32
     }
 
     //#pragma omp parallel for collapse(2)
-#pragma omp parallel for schedule(static) default(none) shared(bright, dark, h, w, raw2ev, ev2raw, mix_curve, halfres)
+#pragma omp parallel for schedule(static) default(none) shared(bright, dark, h, w, raw2ev, ev2raw, mix_curve, halfres) collapse(2)
     for (int y = 0; y < h; y ++)
     {
         for (int x = 0; x < w; x ++)
@@ -1833,7 +1840,7 @@ static inline int mix_images(struct raw_info raw_info, uint32_t* fullres, uint32
         build_alias_map(raw_info, alias_map, fullres_smooth, halfres_smooth, bright, dark_noise, black, raw2ev/*, fullres_curve*/);
     }
     
-    //#pragma omp parallel for collapse(2)
+#pragma omp parallel for schedule(static) default(none) shared(bright, dark, white, overexposed, h, w, white_darkened) collapse(2)
     for (int y = 0; y < h; y ++)
     {
         for (int x = 0; x < w; x ++)
@@ -1847,6 +1854,7 @@ static inline int mix_images(struct raw_info raw_info, uint32_t* fullres, uint32
     memcpy(over_aux, overexposed, w * h * sizeof(uint16_t));
     
     //#pragma omp parallel for collapse(2)
+#pragma omp parallel for schedule(static) default(none) shared(overexposed, h, w, over_aux) collapse(2)
     for (int y = 3; y < h-3; y ++)
     {
         for (int x = 3; x < w-3; x ++)
@@ -1896,6 +1904,7 @@ static inline void final_blend(struct raw_info raw_info, uint32_t* raw_buffer_32
         printf("Final blending...\n");
 #endif
     //#pragma omp parallel for collapse(2)
+#pragma omp parallel for schedule(static) default(none) shared(bright, dark, overexposed, h, w, fullres_curve, black, dark_noise,raw_buffer_32, raw_info, alias_map, halfres_smooth, fullres, fullres_smooth, raw2ev, ev2raw, use_fullres) collapse(2)
     for (int y = 0; y < h; y ++)
     {
         for (int x = 0; x < w; x ++)
@@ -1978,7 +1987,7 @@ static inline void convert_20_to_16bit(struct raw_info raw_info, uint16_t * imag
     raw_info.black_level /= 16;
     raw_info.white_level /= 16;
     
-    //#pragma omp parallel for collapse(2)
+#pragma omp parallel for schedule(static) default(none) shared(h,w,image_data, raw_buffer_32, raw_info) collapse(2)
     for (int y = 0; y < h; y++)
         for (int x = 0; x < w; x++)
             raw_set_pixel_20to16_rand(x, y, raw_buffer_32[x + y*w]);
@@ -2326,6 +2335,7 @@ static void find_and_fix_bad_pixels(struct raw_info raw_info, uint32_t * raw_buf
     int cold_thr = MAX(0, black - dark_noise*8);
     int maybe_cold_thr = black + dark_noise*2;
 
+#pragma omp parallel for schedule(static) collapse(2)
     for (int y = 6; y < h-6; y ++)
     {
         for (int x = 6; x < w-6; x ++)
@@ -2404,6 +2414,7 @@ static void find_and_fix_bad_pixels(struct raw_info raw_info, uint32_t * raw_buf
     }
 
     /* apply the correction */
+    #pragma omp parallel for schedule(static) default(none) collapse(2)
     for (int y = 0; y < h; y ++)
         for (int x = 0; x < w; x ++)
             if (hotpixel[x + y*w])
