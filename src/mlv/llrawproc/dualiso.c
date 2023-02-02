@@ -313,6 +313,7 @@ static void white_detect(struct raw_info raw_info, uint16_t * image_data, int* w
 #define BIN_IDX is_bright[y%4]
             counts[BIN_IDX] = MIN(counts[BIN_IDX], max_pix-1);
             pixels[BIN_IDX][counts[BIN_IDX]] = -pix;
+#pragma omp atomic
             counts[BIN_IDX]++;
 #undef BIN_IDX
         }
@@ -552,6 +553,7 @@ static int identify_bright_and_dark_fields(struct raw_info raw_info, uint16_t * 
             if ((x%2) != (y%2))
             {
                 /* only check the green pixels */
+#pragma omp atomic
                 hist[y%4][raw_get_pixel16(x,y) & 16383]++;
             }
         }
@@ -671,7 +673,6 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     memset(dark, 0, w * h * sizeof(dark[0]));
     memset(bright, 0, w * h * sizeof(bright[0]));
     
-    //#pragma omp parallel for
 #pragma omp parallel for schedule(static) default(none) shared(raw_info, raw_buffer_32, is_bright, y0,h,w,black,dark,bright,clip,clip0)
     for (int y = y0; y < h-2; y += 3)
     {
