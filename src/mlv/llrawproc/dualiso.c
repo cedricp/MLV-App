@@ -467,6 +467,7 @@ static int identify_rggb_or_gbrg(struct raw_info raw_info, uint16_t * image_data
     for (int y = y0; y < h/4*4; y++)
     {
         for (int x = 0; x < w; x++){
+#pragma omp atomic
             hist[(y%2)*2 + (x%2)][raw_get_pixel16(x,y) & 16383]++;
         }
     }
@@ -1186,7 +1187,7 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
 #ifdef PERF_INFO
     perf_sub_clock = clock();
 #endif
-    //#pragma omp parallel for collapse(2)
+
 #pragma omp parallel for schedule(static) default(none) shared(green, red, blue, h, w, black) collapse(2)
     for (int y = 0; y < h; y ++)
     {
@@ -1347,7 +1348,6 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
     perf_sub_clock = clock();
 #endif
 
-    //#pragma omp parallel for
 #pragma omp parallel for schedule(static) default(none) shared(w, red, green, edge_direction, squeezed, blue, bright,dark, is_bright, h, raw2ev,ev2raw,raw_info,raw_buffer_32)
     for (int y = 2; y < h-2; y ++)
     {
@@ -1387,8 +1387,8 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
 #ifdef PERF_INFO
     perf_sub_clock = clock();
 #endif
-    //#pragma omp parallel for
-    #pragma omp parallel for schedule(static) default(none) shared(rawData, red, green, blue, h)
+
+#pragma omp parallel for schedule(static) default(none) shared(rawData, red, green, blue, h)
     for (int i = 0; i < h; i++)
     {
         free(rawData[i]);
@@ -1431,7 +1431,7 @@ static inline void mean23_interpolate(struct raw_info raw_info, uint32_t * raw_b
         build_ev2raw_lut(raw2ev, ev2raw_0, black, white);
         previous_black = black;
     }
-    //#pragma omp parallel for
+
 #pragma omp parallel for schedule(static) default(none) shared(is_bright, dark, bright, white_darkened, h, w, raw_info, raw_buffer_32, black, white, raw2ev, ev2raw)
     for (int y = 2; y < h-2; y ++)
     {
@@ -1903,7 +1903,7 @@ static inline void final_blend(struct raw_info raw_info, uint32_t* raw_buffer_32
 #ifndef STDOUT_SILENT
         printf("Final blending...\n");
 #endif
-    //#pragma omp parallel for collapse(2)
+
 #pragma omp parallel for schedule(static)  collapse(2)
     for (int y = 0; y < h; y ++)
     {
