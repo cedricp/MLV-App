@@ -355,7 +355,7 @@ static void compute_black_noise(struct raw_info raw_info, uint16_t * image_data,
     /* compute standard deviation */
     double stdev = 0;
     //#pragma omp parallel for collapse(2)
-//#pragma omp parallel for schedule(static) default(none) shared(raw_info, image_data, mean,y1,y2,dy,dx,x1,x2) reduction(+:stdev)
+//#xpragma omp parallel for schedule(static) default(none) shared(raw_info, image_data, mean,y1,y2,dy,dx,x1,x2) reduction(+:stdev)
     for (int y = y1; y < y2; y += dy)
     {
         for (int x = x1; x < x2; x += dx)
@@ -430,7 +430,7 @@ static float randn05_cache[1024];
 void fast_randn_init()
 {
     int i;
-    #pragma omp parallel for schedule(static) default(none) shared(randn05_cache)
+#pragma omp parallel for schedule(static) default(none) shared(randn05_cache)
     for (i = 0; i < 1024; i++)
     {
         randn05_cache[i] = RANDN / 2;
@@ -708,7 +708,7 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     int n = 0;
 
 // This one and the next are tricky to parallelize, n values must follow the order to serve as tmp vector index. Could be rewritten so tmp is 2 dimensions
-//#pragma omp parallel for schedule(static) default(none) shared(is_bright,bright,clip, y0,h,w,n,tmp) collapse(2)
+//#xpragma omp parallel for schedule(static) default(none) shared(is_bright,bright,clip, y0,h,w,n,tmp) collapse(2)
     for (int y = y0; y < h-2; y += 3)
     {
         for (int x = 0; x < w; x += 3)
@@ -730,7 +730,7 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     
     /* median_dark */
     n = 0;
-//#pragma omp parallel for schedule(static) default(none) shared(dark, bright, y0,h,w,n,tmp,clip)
+//#xpragma omp parallel for schedule(static) default(none) shared(dark, bright, y0,h,w,n,tmp,clip)
     for (int y = y0; y < h-2; y += 3)
     {
         for (int x = 0; x < w; x += 3)
@@ -1008,11 +1008,10 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
     float** green   = malloc(h * sizeof(green[0]));
     float** blue    = malloc(h * sizeof(blue[0]));
 
-    //#pragma omp parallel for
-#pragma omp parallel for schedule(static) default(none) shared(h, w, rawData, red, green, blue)
+    int wx = w + 16;
+#pragma omp parallel for schedule(static) default(none) shared(h, w, rawData, red, green, blue, wx)
     for (int i = 0; i < h; i++)
     {
-        int wx = w + 16;
         rawData[i] =   malloc(wx * sizeof(rawData[0][0]));
         memset(rawData[i], 0, wx * sizeof(rawData[0][0]));
         red[i]     = malloc(wx * sizeof(red[0][0]));
@@ -1542,32 +1541,33 @@ static inline void fullres_reconstruction(struct raw_info raw_info, uint32_t * f
     int w = raw_info.width;
     int h = raw_info.height;
     
-    int offset_threshold = 100000;
+//    int offset_threshold = 100000;
     /* reconstruct a full-resolution image (discard interpolated fields whenever possible) */
     /* this has full detail and lowest possible aliasing, but it has high shadow noise and color artifacts when high-iso starts clipping */
 #ifndef STDOUT_SILENT
     printf("Full-res reconstruction...\n");
 #endif
-    //#pragma omp parallel for collapse(2)
-#pragma omp parallel for schedule(static) default(none) shared(fullres, offset_threshold, is_bright, dark, bright, white_darkened, h, w) collapse(2)
+#pragma omp parallel for schedule(static) default(none) shared(fullres, /*offset_threshold,*/ is_bright, dark, bright, white_darkened, h, w) collapse(2)
     for (int y = 0; y < h; y ++)
     {
         for (int x = 0; x < w; x ++)
         {
             uint32_t d = dark[x + y*w];
-            uint32_t f = bright[x + y*w];
             if (BRIGHT_ROW)
             {
+                uint32_t f = bright[x + y*w];
+                //Pink stripes fix removed until a reliable solution is found
+//                if (ABS(((int)f)-((int)d)) > offset_threshold){
+//                    fullres[x + y*w] = d;
+//                }else{
+//                    fullres[x + y*w] = f < (uint32_t)white_darkened ? f : MAX(f, d);
+//                }
                 /* if the brighter copy is overexposed, the guessed pixel for sure has higher brightness */
-                if (ABS(((int)f)-((int)d)) > offset_threshold){
-                    fullres[x + y*w] = d;
-                }else{
-                    fullres[x + y*w] = f < (uint32_t)white_darkened ? f : MAX(f, d);
-                }
+                fullres[x + y*w] = f < (uint32_t)white_darkened ? f : MAX(f, d);
             }
             else
             {
-                fullres[x + y*w] = dark[x + y*w];
+                fullres[x + y*w] = d;
             }
         }
     }
@@ -2414,7 +2414,7 @@ static void find_and_fix_bad_pixels(struct raw_info raw_info, uint32_t * raw_buf
     }
 
     /* apply the correction */
-    #pragma omp parallel for schedule(static) collapse(2)
+#pragma omp parallel for schedule(static) collapse(2)
     for (int y = 0; y < h; y ++)
         for (int x = 0; x < w; x ++)
             if (hotpixel[x + y*w])
