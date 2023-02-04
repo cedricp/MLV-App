@@ -301,6 +301,7 @@ private slots:
     void toolButtonDualIsoInterpolationChanged( void );
     void toolButtonDualIsoAliasMapChanged( void );
     void toolButtonDualIsoFullresBlendingChanged( void );
+    void checkBoxDualIsoHorizontalStripesFixChanged( void );
     void toolButtonDarkFrameSubtractionChanged( bool checked );
     void toolButtonGCurvesChanged( void );
     void on_toolButtonGCurvesReset_clicked();
@@ -409,6 +410,8 @@ private slots:
     void on_actionShowUnmarkedClips_toggled(bool arg1);
 
     void on_lineEditTransferFunction_textChanged(const QString &arg1);
+
+    void on_checkBoxDualIsoHorizontalStripesFix_clicked(bool checked);
 
 private:
     Ui::MainWindow *ui;
@@ -548,6 +551,7 @@ private:
     int toolButtonDualIsoInterpolationCurrentIndex( void );
     int toolButtonDualIsoAliasMapCurrentIndex( void );
     int toolButtonDualIsoFullresBlendingCurrentIndex( void );
+    int checkBoxDualIsoHorizontalStripesCurrentValue( void );
     int toolButtonDarkFrameSubtractionCurrentIndex( void );
     int toolButtonGCurvesCurrentIndex( void );
     void initCutInOut( int frames );

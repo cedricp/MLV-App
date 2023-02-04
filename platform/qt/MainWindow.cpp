@@ -4474,7 +4474,6 @@ void MainWindow::setSliders(ReceiptSettings *receipt, bool paste)
     ui->toolButtonDualIsoForce->setVisible( receipt->dualIsoForced() != DISO_VALID );
     ui->toolButtonDualIsoForce->setChecked( receipt->dualIsoForced() == DISO_FORCED );
     on_toolButtonDualIsoForce_toggled( receipt->dualIsoForced() == DISO_FORCED );
-
     setToolButtonDualIso( receipt->dualIso() );
     setToolButtonDualIsoInterpolation( receipt->dualIsoInterpolation() );
     setToolButtonDualIsoAliasMap( receipt->dualIsoAliasMap() );
@@ -5451,6 +5450,22 @@ void MainWindow::setToolButtonDualIsoFullresBlending(int index)
     if( actualize ) toolButtonDualIsoFullresBlendingChanged();
 }
 
+//void MainWindow::setCheckBoxDualIsoHorizontalStripesFix(int index)
+//{
+//    bool actualize = false;
+//    if( index == checkBoxDualIsoHorizontalStripesFixCu ) actualize = true;
+
+//    switch( index )
+//    {
+//    case 0: ui->toolButtonDualIsoAliasMapOff->setChecked( true );
+//        break;
+//    case 1: ui->toolButtonDualIsoAliasMapOn->setChecked( true );
+//        break;
+//    default: break;
+//    }
+//    if( actualize ) toolButtonDualIsoAliasMapChanged();
+//}
+
 //Set Toolbuttons Darkframe Subtraction On/Off
 void MainWindow::setToolButtonDarkFrameSubtraction(int index)
 {
@@ -5599,6 +5614,13 @@ int MainWindow::toolButtonDualIsoFullresBlendingCurrentIndex()
 {
     if( ui->toolButtonDualIsoFullresBlendingOff->isChecked() ) return 0;
     else return 1;
+}
+
+
+//Get checkbox status of dual iso horizontal stripes fix
+int MainWindow::checkBoxDualIsoHorizontalStripesCurrentValue()
+{
+    return ui->checkBoxDualIsoHorizontalStripesFix->isChecked();
 }
 
 //Get toolbutton index of Darkframe Subtraction On/Off
@@ -8455,6 +8477,7 @@ void MainWindow::toolButtonDualIsoChanged( void )
         ui->toolButtonDualIsoFullresBlending->setEnabled( true );
         ui->DualISOInterpolationLabel->setEnabled( true );
         ui->DualISOAliasMapLabel->setEnabled( true );
+        ui->checkBoxDualIsoHorizontalStripesFix->setEnabled( true );
     }
     else
     {
@@ -8464,6 +8487,7 @@ void MainWindow::toolButtonDualIsoChanged( void )
         ui->toolButtonDualIsoFullresBlending->setEnabled( false );
         ui->DualISOInterpolationLabel->setEnabled( false );
         ui->DualISOAliasMapLabel->setEnabled( false );
+        ui->checkBoxDualIsoHorizontalStripesFix->setEnabled( false );
     }
 
     //Set dualIso mode
@@ -8502,6 +8526,27 @@ void MainWindow::toolButtonDualIsoFullresBlendingChanged( void )
     resetMlvCache( m_pMlvObject );
     resetMlvCachedFrame( m_pMlvObject );
     m_frameChanged = true;
+}
+
+//DualISO Horizontal Stripes Fix changes
+void MainWindow::checkBoxDualIsoHorizontalStripesFixChanged( void )
+{
+    llrpSetDualIsoHorizontalStripesFixMode( m_pMlvObject, checkBoxDualIsoHorizontalStripesCurrentValue() );
+    llrpComputeStripesOn(m_pMlvObject);
+    llrpResetFpmStatus(m_pMlvObject);
+    llrpResetBpmStatus(m_pMlvObject);
+    resetMlvCache( m_pMlvObject );
+    resetMlvCachedFrame( m_pMlvObject );
+    m_frameChanged = true;
+}
+
+//Set CheckBox Dual Iso Horizontal Stripes Fix
+void MainWindow::on_checkBoxDualIsoHorizontalStripesFix_clicked(bool checked)
+{
+    bool actualize = false;
+    if( checked == checkBoxDualIsoHorizontalStripesCurrentValue() ) actualize = true;
+    ui->checkBoxDualIsoHorizontalStripesFix->setChecked( checked );
+    if( actualize ) checkBoxDualIsoHorizontalStripesFixChanged();
 }
 
 //Darkframe Subtraction On/Off changed
@@ -10658,3 +10703,4 @@ void MainWindow::on_actionSaveSessionMetadata_triggered()
     //Write file
     m_pModel->writeMetadataToCsv( fileName );
 }
+
