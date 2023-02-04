@@ -11,6 +11,10 @@
 #include <inttypes.h>
 #endif
 
+#if defined(__WIN32)
+#include <inttypes.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
