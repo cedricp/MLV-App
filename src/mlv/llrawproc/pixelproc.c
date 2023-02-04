@@ -1201,7 +1201,7 @@ fpm_check:
                 int y = focus_pixel_map->pixels[m].y - cropY;
 
                 int i = x + y*w;
-                if (x > 2 && x < w - 3 && y > 2 && y < h - 3)
+                if ((x > 2) && (x < (w - 3)) && (y > 2) && (y < (h - 3)))
                 {
                     if(dual_iso)
                     {
