@@ -27,7 +27,7 @@
 #include "dualiso.h"
 #include "opt_med.h"
 #include "wirth.h"
-#include <pthread.h>
+//#include <pthread.h>
 #include "../../debayer/debayer.h"
 #include <time.h>
 #include <omp.h>
@@ -42,8 +42,8 @@
 #define COERCE(x,lo,hi) MAX(MIN((x),(hi)),(lo))
 #define ABS(a) ((a) > 0 ? (a) : -(a))
 
-#define LOCK(x) static pthread_mutex_t x = PTHREAD_MUTEX_INITIALIZER; pthread_mutex_lock(&x);
-#define UNLOCK(x) pthread_mutex_unlock(&(x));
+//#define LOCK(x) static pthread_mutex_t x = PTHREAD_MUTEX_INITIALIZER; pthread_mutex_lock(&x);
+//#define UNLOCK(x) pthread_mutex_unlock(&(x));
 
 #ifdef PERF_INFO
 clock_t perf_clock, perf_sub_clock;
@@ -302,7 +302,7 @@ static void white_detect(struct raw_info raw_info, uint16_t * image_data, int* w
     
     /* collect all the pixels and find the k-th max, thus ignoring hot pixels */
     /* change the sign in order to use kth_smallest_int */
-    //#pragma omp parallel for collapse(2)
+
 #pragma omp parallel for schedule(static) default(none) shared(raw_info, image_data, max_pix, counts, pixels, is_bright) collapse(2)
     for (int y = raw_info.active_area.y1; y < raw_info.active_area.y2; y += 3)
     {
@@ -311,8 +311,11 @@ static void white_detect(struct raw_info raw_info, uint16_t * image_data, int* w
             int pix = raw_get_pixel16(x, y);
             
 #define BIN_IDX is_bright[y%4]
+#pragma omp critical
+{
             counts[BIN_IDX] = MIN(counts[BIN_IDX], max_pix-1);
             pixels[BIN_IDX][counts[BIN_IDX]] = -pix;
+}
 #pragma omp atomic
             counts[BIN_IDX]++;
 #undef BIN_IDX
@@ -340,8 +343,7 @@ static void compute_black_noise(struct raw_info raw_info, uint16_t * image_data,
     long long black = 0;
     int num = 0;
     /* compute average level */
-    //#pragma omp parallel for collapse(2)
-#pragma omp parallel for schedule(static) default(none) shared(raw_info, image_data,y1,y2,dy,dx,x1,x2) reduction(+:black) reduction(+:num)
+#pragma omp parallel for schedule(static) default(none) shared(raw_info, image_data,y1,y2,dy,dx,x1,x2) reduction(+:black) reduction(+:num) collapse(2)
     for (int y = y1; y < y2; y += dy)
     {
         for (int x = x1; x < x2; x += dx)
@@ -355,7 +357,6 @@ static void compute_black_noise(struct raw_info raw_info, uint16_t * image_data,
     
     /* compute standard deviation */
     double stdev = 0;
-    //#pragma omp parallel for collapse(2)
 //#xpragma omp parallel for schedule(static) default(none) shared(raw_info, image_data, mean,y1,y2,dy,dx,x1,x2) reduction(+:stdev)
     for (int y = y1; y < y2; y += dy)
     {
@@ -463,7 +464,6 @@ static int identify_rggb_or_gbrg(struct raw_info raw_info, uint16_t * image_data
     int y0 = (raw_info.active_area.y1 + 3) & ~3;
     
     /* to simplify things, analyze an identical number of bright and dark lines */
-    //#pragma omp parallel for collapse(2)
 #pragma omp parallel for schedule(static) default(none) shared(raw_info, image_data, y0, h, w,hist) collapse(2)
     for (int y = y0; y < h/4*4; y++)
     {
@@ -779,7 +779,8 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     
     int best_score = 0;
     //for (double ev = 0; ev < 6; ev += 0.002)
-#pragma omp parallel for schedule(static) default(none) shared(hi_n,dmed,bmed,hi_dark,hi_bright,best_score,a,b)
+//This loop updates "a" and "b" when the maximum score is updated. Needs to be rewritten to make it parallelizable
+//#xpragma omp parallel for schedule(static) default(none) shared(hi_n,dmed,bmed,hi_dark,hi_bright,best_score,a,b) reduction(max : best_score)
     for (int ev_int = 0; ev_int < 6000; ev_int += 2)
     {
         double ev = ev_int*0.001;
@@ -813,7 +814,6 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     
     /* apply the correction */
     double b20 = b * 16;
-    //#pragma omp parallel for collapse(2)
 #pragma omp parallel for schedule(static) default(none) shared(black20, is_bright, h, w, b20, raw_buffer_32, raw_info, a) collapse(2)
     for (int y = 0; y < h; y ++)
     {
@@ -865,7 +865,6 @@ static inline uint32_t * convert_to_20bit(struct raw_info raw_info, uint16_t * i
     /* promote from 14 to 20 bits (original raw buffer holds 14-bit values stored as uint16_t) */
     uint32_t * raw_buffer_32 = malloc(w * h * sizeof(raw_buffer_32[0]));
     
-    //#pragma omp parallel for collapse(2)
 #pragma omp parallel for schedule(static) default(none) shared(raw_info,raw_buffer_32, h,w,image_data) collapse(2)
     for (int y = 0; y < h; y ++)
         for (int x = 0; x < w; x ++)
@@ -878,7 +877,6 @@ static inline void build_ev2raw_lut(int * raw2ev, int * ev2raw_0, int black, int
 {
     int* ev2raw = ev2raw_0 + 10*EV_RESOLUTION;
     
-    //#pragma omp parallel for
 #pragma omp parallel for schedule(static) default(none) shared(black, raw2ev)
     for (int i = 0; i < 1<<20; i++)
     {
@@ -889,14 +887,12 @@ static inline void build_ev2raw_lut(int * raw2ev, int * ev2raw_0, int black, int
             raw2ev[i] = -(int)round(log2(1-signal) * EV_RESOLUTION);
     }
     
-    //#pragma omp parallel for
 #pragma omp parallel for schedule(static) default(none) shared(black, ev2raw)
     for (int i = -10*EV_RESOLUTION; i < 0; i++)
     {
         ev2raw[i] = COERCE(black+64 - round(64*pow(2, ((double)-i/EV_RESOLUTION))), 0, black);
     }
     
-    //#pragma omp parallel for
 #pragma omp parallel for schedule(static) default(none) shared(black, ev2raw, raw2ev, white)
     for (int i = 0; i < 14*EV_RESOLUTION; i++)
     {
@@ -943,7 +939,6 @@ static inline double * build_fullres_curve(int black)
     
     previous_black = black;
        
-    //#pragma omp parallel for
 #pragma omp parallel for schedule(static) default(none) shared(black,fullres_curve,fullres_start,fullres_transition)
     for (int i = 0; i < (1<<20); i++)
     {
@@ -1171,7 +1166,7 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
                 w, (endchunk_y[thread] - startchunk_y[thread]),
                 0,
                 0 };
-            /* Create pthread! */
+            /* Partial image for this thread */
             demosaic(&amaze_arguments[thread]);
     #pragma omp barrier
     }
@@ -1213,7 +1208,7 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
     //~ printf("Grayscale...\n");
     /* convert to grayscale and de-squeeze for easier processing */
     uint32_t * gray = malloc(w * h * sizeof(gray[0]));
-    //#pragma omp parallel for collapse(2)
+
 #pragma omp parallel for schedule(static) default(none) shared(gray, green, red, blue, h, w, squeezed) collapse(2)
     for (int y = 0; y < h; y ++)
         for (int x = 0; x < w; x ++)
@@ -1222,7 +1217,7 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
     
     uint8_t* edge_direction = malloc(w * h * sizeof(edge_direction[0]));
     int d0 = COUNT(edge_directions)/2;
-    //#pragma omp parallel for collapse(2)
+
 #pragma omp parallel for schedule(static) default(none) shared(edge_direction, green, red, blue, h, w,d0) collapse(2)
     for (int y = 0; y < h; y ++)
         for (int x = 0; x < w; x ++)
@@ -1249,12 +1244,11 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
         build_ev2raw_lut(raw2ev, ev2raw_0, black, white);
         previous_black = black;
     }
-    //#pragma omp parallel for
+
 #pragma omp parallel for schedule(static) default(none) shared(edge_direction, raw2ev,gray,is_bright, white_darkened, h, w, raw_info, raw_buffer_32, black, white, d0, edge_directions, fullres_curve, fullres_thr) reduction(+:not_shadow) reduction(+:deep_shadow) reduction(+:not_overexposed) reduction(+:semi_overexposed)
     for (int y = 5; y < h-5; y ++)
     {
         int s = (is_bright[y%4] == is_bright[(y+1)%4]) ? -1 : 1;    /* points to the closest row having different exposure */
-        //#pragma omp parallel for
         for (int x = 5; x < w-5; x ++)
         {
             int e_best = INT_MAX;
@@ -1359,7 +1353,6 @@ static inline void amaze_interpolate(struct raw_info raw_info, uint32_t * raw_bu
 
         //~ printf("Interpolating %s line %d from [near] %d (squeezed %d) and [far] %d (squeezed %d)\n", BRIGHT_ROW ? "BRIGHT" : "DARK", y, y+s, yh_near, y-2*s, yh_far);
 
-        //#pragma omp parallel for
         for (int x = 2; x < w-2; x += 2)
         {
             for (int k = 0; k < 2; k++, x++)
@@ -1441,7 +1434,6 @@ static inline void mean23_interpolate(struct raw_info raw_info, uint32_t * raw_b
         int is_rg = (y % 2 == 0); /* RG or GB? */
         int white = !BRIGHT_ROW ? white_darkened : raw_info.white_level;
 
-        //#pragma omp parallel for
         for (int x = 2; x < w-3; x += 2)
         {
 
@@ -1590,7 +1582,6 @@ static inline void build_alias_map(struct raw_info raw_info, uint16_t* alias_map
     /* build the aliasing maps (where it's likely to get aliasing) */
     /* do this by comparing fullres and halfres images */
     /* if the difference is small, we'll prefer halfres for less noise, otherwise fullres for less aliasing */
-    //#pragma omp parallel for collapse(2)
 #pragma omp parallel for schedule(static) default(none) shared(fullres_curve, fullres_smooth, halfres_smooth, h, w, fullres_thr, dark_noise, bright, raw2ev, alias_map) collapse(2)
     for (int y = 0; y < h; y ++)
     {
@@ -1641,7 +1632,6 @@ static inline void build_alias_map(struct raw_info raw_info, uint16_t* alias_map
     printf("Smoothing alias map...\n");
 #endif
     /* gaussian blur */
-    //#pragma omp parallel for collapse(2)
 #pragma omp parallel for schedule(static) default(none) shared(fullres_curve, h, w, fullres_thr, bright, alias_map, alias_aux) collapse(2)
     for (int y = 6; y < h-6; y ++)
     {
@@ -1666,7 +1656,6 @@ static inline void build_alias_map(struct raw_info raw_info, uint16_t* alias_map
     }
     
     /* make it grayscale */
-    //#pragma omp parallel for collapse(2)
 #pragma omp parallel for schedule(static) collapse(2)
     for (int y = 2; y < h-2; y += 2)
     {
@@ -1775,7 +1764,6 @@ static inline int mix_images(struct raw_info raw_info, uint32_t* fullres, uint32
     double max_ev = log2(white/64 - black/64);
     double * mix_curve = malloc((1<<20) * sizeof(double));
     
-    //#pragma omp parallel for
 #pragma omp parallel for schedule(static) default(none) shared(corr_ev, max_ev, overlap, black, mix_curve)
     for (int i = 0; i < 1<<20; i++)
     {
@@ -1799,7 +1787,6 @@ static inline int mix_images(struct raw_info raw_info, uint32_t* fullres, uint32
         previous_black = black;
     }
 
-    //#pragma omp parallel for collapse(2)
 #pragma omp parallel for schedule(static) default(none) shared(bright, dark, h, w, raw2ev, ev2raw, mix_curve, halfres) collapse(2)
     for (int y = 0; y < h; y ++)
     {
@@ -1854,7 +1841,6 @@ static inline int mix_images(struct raw_info raw_info, uint32_t* fullres, uint32
     uint16_t* over_aux = malloc(w * h * sizeof(uint16_t));
     memcpy(over_aux, overexposed, w * h * sizeof(uint16_t));
     
-    //#pragma omp parallel for collapse(2)
 #pragma omp parallel for schedule(static) default(none) shared(overexposed, h, w, over_aux) collapse(2)
     for (int y = 3; y < h-3; y ++)
     {
@@ -2520,43 +2506,6 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     white *= 64;
     white_bright *= 64;
     raw_info.white_level = white;
-    
-
-//    /* for fast EV - raw conversion */
-//    static int raw2ev[1<<20];   /* EV x EV_RESOLUTION */
-//    static int ev2raw_0[24*EV_RESOLUTION];
-
-//    /* handle sub-black values (negative EV) */
-//    int* ev2raw = ev2raw_0 + 10*EV_RESOLUTION;
-
-//    for (int i = 0; i < 1<<20; i++)
-//    {
-//        double signal = MAX(i/64.0 - black/64.0, -1023);
-//        if (signal > 0)
-//            raw2ev[i] = (int)round(log2(1+signal) * EV_RESOLUTION);
-//        else
-//            raw2ev[i] = -(int)round(log2(1-signal) * EV_RESOLUTION);
-//    }
-
-//    for (int i = -10*EV_RESOLUTION; i < 0; i++)
-//    {
-//        ev2raw[i] = COERCE(black+64 - round(64*pow(2, ((double)-i/EV_RESOLUTION))), 0, black);
-//    }
-
-//    for (int i = 0; i < 14*EV_RESOLUTION; i++)
-//    {
-//        ev2raw[i] = COERCE(black-64 + round(64*pow(2, ((double)i/EV_RESOLUTION))), black, (1<<20)-1);
-
-//        if (i >= raw2ev[white])
-//        {
-//            ev2raw[i] = MAX(ev2raw[i], white);
-//        }
-//    }
-
-//    /* keep "bad" pixels, if any */
-//    ev2raw[raw2ev[0]] = 0;
-//    ev2raw[raw2ev[0]] = 0;
-
 
     double noise_std[4];
     double dark_noise, bright_noise, dark_noise_ev, bright_noise_ev;
@@ -2574,6 +2523,7 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
 #endif
     /* promote from 14 to 20 bits (original raw buffer holds 14-bit values stored as uint16_t) */
     uint32_t * raw_buffer_32 = convert_to_20bit(raw_info, image_data);
+
 #ifdef PERF_INFO
     perf_clock = clock()-perf_clock;
     printf("convert_to_20bit took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
@@ -2603,16 +2553,7 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     uint32_t* halfres = malloc(w * h * sizeof(uint32_t));
     memset(halfres, 0, w * h * sizeof(uint32_t));
     uint32_t* halfres_smooth = halfres;
-    
-//    if (chroma_smooth_method)
-//    {
-//        if (use_fullres)
-//        {
-//            fullres_smooth = malloc(w * h * sizeof(uint32_t));
-//        }
-//        halfres_smooth = malloc(w * h * sizeof(uint32_t));
-//    }
-    
+       
     /* overexposure map */
     uint16_t * overexposed = malloc(w * h * sizeof(uint16_t));
     memset(overexposed, 0, w * h * sizeof(uint16_t));
@@ -2624,7 +2565,6 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
         memset(alias_map, 0, w * h * sizeof(uint16_t));
     }
     
-    /* fullres mixing curve */
     /* fullres mixing curve */
     static double fullres_curve[1<<20];
 #ifdef PERF_INFO
@@ -2656,13 +2596,15 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
 #ifdef PERF_INFO
     perf_clock = clock();
 #endif
+
     int expo_matched = match_exposures(raw_info, raw_buffer_32, &corr_ev, &white_darkened, is_bright);
+
 #ifdef PERF_INFO
     perf_clock = clock()-perf_clock;
-    printf("match_exposures took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
+    printf("match_exposures took %f seconds\n", ((double) perf_clock) / CLOCKS
+       #ifndef STDOUT_SILENT_PER_SEC);
     fflush(stdout);
 #endif
-#ifndef STDOUT_SILENT
     if(expo_matched)
     {
         printf("Exposures matched");
@@ -2672,6 +2614,7 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
         printf("Exposures not matched");
     }
 #endif
+
     /* estimate dynamic range */
     double lowiso_dr = log2(white - black) - dark_noise_ev;
 #ifndef STDOUT_SILENT
@@ -2737,7 +2680,10 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
 #ifdef PERF_INFO
     perf_clock = clock();
 #endif
+#ifndef STDOUT_SILENT
         printf("Horizontal stripe fix...\n");
+#endif
+
         int* delta = malloc(w * sizeof(delta[0]));
 
         /* adjust dark lines to match the bright ones */
@@ -2766,7 +2712,9 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
 
             if (ABS(med_delta) > 200*16)
             {
+#ifndef STDOUT_SILENT
                 printf("%d: offset too large (%d)\n", y, med_delta);
+#endif
                 continue;
             }
 
@@ -2820,10 +2768,11 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     perf_clock = clock();
 #endif
         /* let's check the ideal noise levels (on the halfres image, which in black areas is identical to the bright one) */
-        //#pragma omp parallel for collapse(2)
+#pragma omp parallel for schedule(static) default(none) shared(raw_info, raw_buffer_32,h,w,bright) collapse(2)
         for (int y = 3; y < h-2; y ++)
             for (int x = 2; x < w-2; x ++)
                 raw_set_pixel32(x, y, bright[x + y*w]);
+
         compute_black_noise(raw_info, image_data, 8, raw_info.active_area.x1 - 8, raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0]);
 #ifdef PERF_INFO
     perf_clock = clock()-perf_clock;
