@@ -91,6 +91,7 @@ static void scale_restricted_range(struct raw_info * raw_info, uint16_t * image_
     /* find min and max level values in the currecnt raw frame */
     int32_t min_level = image_data[0];
     int32_t max_level = image_data[0];
+#pragma omp parallel for schedule(static) default(none) shared(image_data, pixel_count) reduction(min : min_level) reduction(max : max_level)
     for(uint32_t i = 1; i < pixel_count; ++i)
     {
         if(image_data[i] < min_level) min_level = image_data[i];
@@ -106,7 +107,7 @@ static void scale_restricted_range(struct raw_info * raw_info, uint16_t * image_
     double scale_ratio = (double)(scaled_white_level - raw_info->black_level) / (double)(raw_info->white_level - raw_info->black_level);
     raw_info->white_level = scaled_white_level;
 
-#pragma omp parallel for
+#pragma omp parallel for schedule(static) default(none) shared(image_data, pixel_count, raw_info, scale_ratio)
     for(uint32_t i = 0; i < pixel_count; ++i)
     {
         image_data[i] = MIN( (uint16_t)((double)((image_data[i] - raw_info->black_level) * scale_ratio + raw_info->black_level) + 0.5), 16383);

@@ -30,6 +30,7 @@
 
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+#define COERCE(x,lo,hi) MAX(MIN((x),(hi)),(lo))
 #define LIMIT16(X) MAX(MIN(X, 65535), 0)
 
 /* Thank you to https://gist.github.com/MrLixm/946c1b59cce8b74e948e75618583ce8d */
@@ -1650,23 +1651,12 @@ void processingSetBlackAndWhiteLevel(processingObject_t * processing,
     /* How much it needs to be stretched */
     double stretch = 65535.0 / (double)(processing->white_level - processing->black_level);
 
+#pragma omp parallel for schedule(static) default(none) shared(processing, stretch)
     for (int i = 0; i < 65536; ++i)
     {
         /* Stretch to the black-white level range */
         int new_value = (int)((double)(i - processing->black_level) * stretch);
-
-        if (new_value < 65536 && new_value > 0)
-        {
-            processing->pre_calc_levels[i] = new_value;
-        }
-        else if (new_value <= 0)
-        {
-            processing->pre_calc_levels[i] = 0;
-        }
-        else if (new_value >= 65535)
-        {
-            processing->pre_calc_levels[i] = 65535;
-        }
+        processing->pre_calc_levels[i] = COERCE(new_value, 0, 65535);
     }
 }
 
