@@ -216,28 +216,6 @@ void applyLLRawProcObject(mlvObject_t * video, uint16_t * raw_image_buff, size_t
                              &video->llrawproc->compute_stripes);
     }
 
-    /* fix bad pixels */
-    if (video->llrawproc->bad_pixels && video->llrawproc->bpm_status < 3)
-    {
-        fix_bad_pixels(&video->llrawproc->bad_pixel_map,
-                       &video->llrawproc->bpm_status,
-                       raw_image_buff,
-                       video->IDNT.cameraModel,
-                       video->RAWI.xRes,
-                       video->RAWI.yRes,
-                       video->VIDF.panPosX,
-                       video->VIDF.panPosY,
-                       raw_info.width,
-                       raw_info.height,
-                       raw_info.black_level,
-                       video->llrawproc->bad_pixels,
-                       video->llrawproc->bps_method,
-                       video->llrawproc->bpi_method,
-                       0, //(video->llrawproc->dual_iso),
-                       video->llrawproc->raw2ev,
-                       video->llrawproc->ev2raw);
-    }
-
     /* fix focus pixels */
     if (video->llrawproc->focus_pixels && video->llrawproc->fpm_status < 3)
     {
@@ -261,6 +239,29 @@ void applyLLRawProcObject(mlvObject_t * video, uint16_t * raw_image_buff, size_t
                          (video->llrawproc->dual_iso),
                          video->llrawproc->raw2ev,
                          video->llrawproc->ev2raw);
+    }
+
+
+    /* fix bad pixels */
+    if (video->llrawproc->bad_pixels && video->llrawproc->bpm_status < 3)
+    {
+        fix_bad_pixels(&video->llrawproc->bad_pixel_map,
+                       &video->llrawproc->bpm_status,
+                       raw_image_buff,
+                       video->IDNT.cameraModel,
+                       video->RAWI.xRes,
+                       video->RAWI.yRes,
+                       video->VIDF.panPosX,
+                       video->VIDF.panPosY,
+                       raw_info.width,
+                       raw_info.height,
+                       raw_info.black_level,
+                       video->llrawproc->bad_pixels,
+                       video->llrawproc->bps_method,
+                       video->llrawproc->bpi_method,
+                       (video->llrawproc->dual_iso),
+                       video->llrawproc->raw2ev,
+                       video->llrawproc->ev2raw);
     }
 
     /* fix pattern noise */
@@ -332,8 +333,7 @@ void applyLLRawProcObject(mlvObject_t * video, uint16_t * raw_image_buff, size_t
         }
     }
 
-    /* fix focus pixels */
-    /* Second pass, only for dual ISO */
+    /* fix focus pixels, second pass, only for dual ISO */
     if (video->llrawproc->focus_pixels && video->llrawproc->fpm_status < 3 && video->llrawproc->dual_iso == 1)
     {
         /* detect crop_rec mode */
@@ -353,7 +353,7 @@ void applyLLRawProcObject(mlvObject_t * video, uint16_t * raw_image_buff, size_t
                          crop_rec,
                          unified_mode,
                          video->llrawproc->fpi_method,
-                         0, //(video->llrawproc->dual_iso),
+                         0, //Pretend that it's not dual ISO
                          video->llrawproc->raw2ev,
                          video->llrawproc->ev2raw);
     }
