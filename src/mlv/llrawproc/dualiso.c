@@ -1534,13 +1534,13 @@ static inline void fullres_reconstruction(struct raw_info raw_info, uint32_t * f
     int w = raw_info.width;
     int h = raw_info.height;
     
-//    int offset_threshold = 100000;
+    int dark_highlight_threshold = 400000; //Make it adjustable from 0 to 1048512 (MAX for 20bit)
     /* reconstruct a full-resolution image (discard interpolated fields whenever possible) */
     /* this has full detail and lowest possible aliasing, but it has high shadow noise and color artifacts when high-iso starts clipping */
 #ifndef STDOUT_SILENT
     printf("Full-res reconstruction...\n");
 #endif
-#pragma omp parallel for schedule(static) default(none) shared(fullres, /*offset_threshold,*/ is_bright, dark, bright, white_darkened, h, w) collapse(2)
+#pragma omp parallel for schedule(static) default(none) shared(dark_highlight_threshold, fullres, is_bright, dark, bright, white_darkened, h, w) collapse(2)
     for (int y = 0; y < h; y ++)
     {
         for (int x = 0; x < w; x ++)
@@ -1549,14 +1549,12 @@ static inline void fullres_reconstruction(struct raw_info raw_info, uint32_t * f
             if (BRIGHT_ROW)
             {
                 uint32_t f = bright[x + y*w];
-                //Pink stripes fix removed until a reliable solution is found
-//                if (ABS(((int)f)-((int)d)) > offset_threshold){
-//                    fullres[x + y*w] = d;
-//                }else{
-//                    fullres[x + y*w] = f < (uint32_t)white_darkened ? f : MAX(f, d);
-//                }
-                /* if the brighter copy is overexposed, the guessed pixel for sure has higher brightness */
-                fullres[x + y*w] = f < (uint32_t)white_darkened ? f : MAX(f, d);
+                if (dark_highlight_threshold && d > f && (int)d > dark_highlight_threshold){
+                    fullres[x + y*w] = d;
+                }else{
+                    /* if the brighter copy is overexposed, the guessed pixel for sure has higher brightness */
+                    fullres[x + y*w] = f < (uint32_t)white_darkened ? f : MAX(f, d);
+                }
             }
             else
             {
