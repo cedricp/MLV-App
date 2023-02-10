@@ -242,6 +242,7 @@ void applyLLRawProcObject(mlvObject_t * video, uint16_t * raw_image_buff, size_t
                          video->llrawproc->ev2raw);
     }
 
+
     /* fix bad pixels */
     if (video->llrawproc->bad_pixels && video->llrawproc->bpm_status < 3)
     {
@@ -333,6 +334,31 @@ void applyLLRawProcObject(mlvObject_t * video, uint16_t * raw_image_buff, size_t
                              raw_info.white_level,
                              0); // dual iso check mode is off
         }
+    }
+
+    /* fix focus pixels, second pass, only for dual ISO */
+    if (video->llrawproc->focus_pixels && video->llrawproc->fpm_status < 3 && video->llrawproc->dual_iso == 1)
+    {
+        /* detect crop_rec mode */
+        int crop_rec = (llrpDetectFocusDotFixMode(video) == 2) ? 1 : (video->llrawproc->focus_pixels == 2);
+        /* if raw data is lossless set unified mode */
+        int unified_mode = (video->MLVI.videoClass & MLV_VIDEO_CLASS_FLAG_LJ92) ? 5 : 0;
+        fix_focus_pixels(&video->llrawproc->focus_pixel_map,
+                         &video->llrawproc->fpm_status,
+                         raw_image_buff,
+                         video->IDNT.cameraModel,
+                         video->RAWI.xRes,
+                         video->RAWI.yRes,
+                         video->VIDF.panPosX,
+                         video->VIDF.panPosY,
+                         raw_info.width,
+                         raw_info.height,
+                         crop_rec,
+                         unified_mode,
+                         video->llrawproc->fpi_method,
+                         0, //Pretend that it's not dual ISO
+                         video->llrawproc->raw2ev,
+                         video->llrawproc->ev2raw);
     }
 
     /* do chroma smoothing */
