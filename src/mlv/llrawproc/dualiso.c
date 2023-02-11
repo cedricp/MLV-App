@@ -2284,7 +2284,93 @@ void fix_vertical_stripes_diso(struct raw_info raw_info, uint32_t * image_data, 
     apply_vertical_stripes_correction(raw_info, image_data);
 }
 
-static void find_and_fix_bad_pixels(struct raw_info raw_info, uint32_t * raw_buffer_32, int dark_noise, int bright_noise, int fix_bad_pixels_dual, int * is_bright, int black, int white)
+void find_and_fix_cold_pixels(struct raw_info raw_info, uint32_t * raw_buffer_32, int force_analysis)
+{
+    #define MAX_COLD_PIXELS 200000
+
+    struct xy { int x; int y; };
+
+    static struct xy cold_pixel_list[MAX_COLD_PIXELS];
+    static int cold_pixels = -1;
+
+    int w = raw_info.width;
+    int h = raw_info.height;
+
+    /* scan for bad pixels in the first frame only, or on request*/
+    if (cold_pixels < 0 || force_analysis)
+    {
+        cold_pixels = 0;
+
+        /* at sane ISOs, noise stdev is well less than 50, so 200 should be enough */
+        int cold_thr = MAX(0, raw_info.black_level - 200);
+
+        /* analyse all pixels of the frame */
+        for (int y = 0; y < h; y++)
+        {
+            for (int x = 0; x < w; x++)
+            {
+                int p = raw_get_pixel32(x, y);
+                int is_cold = (p < cold_thr);
+
+                /* create a list containing the cold pixels */
+                if (is_cold && cold_pixels < MAX_COLD_PIXELS)
+                {
+                    cold_pixel_list[cold_pixels].x = x;
+                    cold_pixel_list[cold_pixels].y = y;
+                    cold_pixels++;
+                }
+            }
+        }
+#ifndef STDOUT_SILENT
+        printf("\rCold pixels : %d                    \n", (cold_pixels));
+#endif
+    }
+
+    /* repair the cold pixels */
+    for (int p = 0; p < cold_pixels; p++)
+    {
+        int x = cold_pixel_list[p].x;
+        int y = cold_pixel_list[p].y;
+
+        int neighbours[100];
+        int k = 0;
+        int fc0 = FC(x, y);
+
+        /* examine the neighbours of the cold pixel */
+        for (int i = -4; i <= 4; i++)
+        {
+            for (int j = -4; j <= 4; j++)
+            {
+                /* exclude the cold pixel itself from the examination */
+                if (i == 0 && j == 0)
+                {
+                    continue;
+                }
+
+                /* exclude out-of-range coords */
+                if (x+j < 0 || x+j >= w || y+i < 0 || y+i >= h)
+                {
+                    continue;
+                }
+
+                /* examine only the neighbours of the same color */
+                if (FC(x+j, y+i) != fc0)
+                {
+                    continue;
+                }
+
+                int p = raw_get_pixel32(x+j, y+i);
+                neighbours[k++] = -p;
+            }
+        }
+
+        /* replace the cold pixel with the median of the neighbours */
+        raw_set_pixel32(x, y, -median_int_wirth(neighbours, k));
+    }
+
+}
+
+static void find_and_fix_bad_pixels(struct raw_info raw_info, uint32_t * raw_buffer_32, int dark_noise, int bright_noise, int bad_pixels_search_method, int * is_bright, int black, int white)
 {
     int w = raw_info.width;
     int h = raw_info.height;
@@ -2376,7 +2462,7 @@ static void find_and_fix_bad_pixels(struct raw_info raw_info, uint32_t * raw_buf
                     is_cold |= (raw2ev[max] - raw2ev[p] > EV_RESOLUTION * 10);
                 }
 
-                if (fix_bad_pixels_dual == 2)    /* aggressive */
+                if (bad_pixels_search_method == 1)    /* aggressive */
                 {
                     int third_max = -kth_smallest_int(neighbours, k, 2);
                     is_hot = ((raw2ev[p] - raw2ev[max] > EV_RESOLUTION/4) && (max > black + 8*dark_noise))
@@ -2445,7 +2531,7 @@ static void find_and_fix_bad_pixels(struct raw_info raw_info, uint32_t * raw_buf
 //    return round(raw_adjusted + fast_randn05());
 //}
 
-int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int interp_method, int use_alias_map, int use_fullres, int chroma_smooth_method, int vertical_stripes_fix, int use_horizontal_stripe_fix)
+int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int interp_method, int use_alias_map, int use_fullres, int chroma_smooth_method, int vertical_stripes_fix, int use_horizontal_stripe_fix, int fix_bad_pixels_dual, int bad_pixels_search_method)
 {
     int w = raw_info.width;
     int h = raw_info.height;
@@ -2626,13 +2712,6 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     bright_noise /= corr;
     bright_noise_ev -= corr_ev;
 
-    //NOTE: This bad pixels fix is not good, removed to use the normal one
-//    if (fix_bad_pixels_dual)
-//    {
-//        /* best done before interpolation */
-//        find_and_fix_bad_pixels(raw_info, raw_buffer_32, dark_noise, bright_noise, fix_bad_pixels_dual, is_bright, black, white);
-//    }
-
     if(vertical_stripes_fix){
 #ifdef PERF_INFO
     perf_clock = clock();
@@ -2643,6 +2722,22 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
 #ifdef PERF_INFO
     perf_clock = clock()-perf_clock;
     printf("fix_vertical_stripes_diso took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
+    fflush(stdout);
+#endif
+    }
+
+    if (fix_bad_pixels_dual == 1) //Only if auto mode selected. Map mode is handled outside of Dual ISO (and it's the way to go tbh...)
+    {
+#ifdef PERF_INFO
+    perf_clock = clock();
+#endif
+        /* best done before interpolation */
+        find_and_fix_bad_pixels(raw_info, raw_buffer_32, dark_noise, bright_noise, bad_pixels_search_method, is_bright, black, white);
+
+        //find_and_fix_cold_pixels(raw_info, raw_buffer_32, 0); //Simpler alternative, not any better
+#ifdef PERF_INFO
+    perf_clock = clock()-perf_clock;
+    printf("fix bad pixels took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
     fflush(stdout);
 #endif
     }
