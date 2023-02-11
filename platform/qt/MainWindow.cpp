@@ -8490,11 +8490,11 @@ void MainWindow::toolButtonDualIsoChanged( void )
         ui->checkBoxDualIsoHorizontalStripesFix->setEnabled( false );
     }
 
-    if (toolButtonDualIsoCurrentIndex() > 0){
-        setToolButtonBadPixelsIntMethod(1); //Best for Dual ISO
-        setToolButtonFocusPixelsIntMethod(2); //Best for Dual ISO
-        setToolButtonBadPixels(3); //Only method really working for Dual ISO and preferred in any mode anyways
-    }
+//    if (toolButtonDualIsoCurrentIndex() > 0){
+//        setToolButtonBadPixelsIntMethod(1); //Best for Dual ISO
+//        setToolButtonFocusPixelsIntMethod(2); //Best for Dual ISO
+//        setToolButtonBadPixels(3); //Only method really working for Dual ISO and preferred in any mode anyways
+//    }
 
     //Set dualIso mode
     llrpSetDualIsoMode( m_pMlvObject, toolButtonDualIsoCurrentIndex() );
