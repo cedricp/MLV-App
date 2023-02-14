@@ -3188,29 +3188,27 @@ void MainWindow::startExportAVFoundation(QString fileName)
     //Audio
     if( m_audioExportEnabled && doesMlvHaveAudio( m_pMlvObject ) && !m_exportAbortPressed )
     {
-        QString wavFileName = QString( "%1.wav" ).arg( fileName.left( fileName.lastIndexOf( "." ) ) );
+        QString wavFileName = QString( "%1_temp.wav" ).arg( fileName.left( fileName.lastIndexOf( "." ) ) );
         writeMlvAudioToWaveCut( m_pMlvObject, wavFileName.toUtf8().data(), m_exportQueue.first()->cutIn(), m_exportQueue.first()->cutOut() );
 
         QString tempFileName = QString( "%1_temp.mov" ).arg( fileName.left( fileName.lastIndexOf( "." ) ) );
         QFile( fileName ).rename( tempFileName );
 
         //FFMpeg export
-        QString ffmpegAudioCommand = QCoreApplication::applicationDirPath();
-        ffmpegAudioCommand.append( QString( "/ffmpeg\"" ) );
-        ffmpegAudioCommand.prepend( QString( "\"" ) );
-
+        QStringList ffmpegAudioCommandArguments;
+        QString ffmpegPath = QCoreApplication::applicationDirPath() +"/"+QString("ffmpeg");
 #ifdef STDOUT_SILENT
-        ffmpegAudioCommand.append( QString( " -loglevel 0" ) );
+        ffmpegAudioCommandArguments << QString( "-loglevel" ) << QString( "quiet" );
 #endif
+        ffmpegAudioCommandArguments << QString( "-y") << QString("-i") << QString("%1").arg( tempFileName ) << QString("-i") << QString("%1").arg( wavFileName ) << QString("-map") << QString("0:v:0") << QString("-map") << QString("1:a:0") << QString("-c:v") << QString("copy") << QString("-c:a") << QString("aac") << QString("-b:a") << QString("160k") << QString("%1").arg( fileName );
 
-        ffmpegAudioCommand.append( QString( " -y -i \"%1\" -i \"%2\" -map 0:0 -map 1:0 -c copy \"%3\"" )
-                .arg( tempFileName ).arg( wavFileName ).arg( fileName ) );
-
-
-        //FILE *pPipe = popen( ffmpegAudioCommand.toUtf8().data(), "w" );
-        //pclose( pPipe );
         QProcess ffmpegProc;
-        ffmpegProc.execute( ffmpegAudioCommand );
+        ffmpegProc.setProgram(ffmpegPath);
+        ffmpegProc.setArguments(ffmpegAudioCommandArguments);
+        ffmpegProc.start();
+        ffmpegProc.waitForFinished(-1);
+//        qDebug() << ffmpegProc.readAllStandardError() << Qt::endl;
+//        qDebug() << ffmpegProc.readAllStandardOutput() << Qt::endl;
 
         QFile( tempFileName ).remove();
         QFile( wavFileName ).remove();
