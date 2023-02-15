@@ -302,6 +302,7 @@ private slots:
     void toolButtonDualIsoAliasMapChanged( void );
     void toolButtonDualIsoFullresBlendingChanged( void );
     void checkBoxDualIsoHorizontalStripesFixChanged( void );
+    void horizontalSliderDualIsoDarkHighlightThresholdChanged( void );
     void toolButtonDarkFrameSubtractionChanged( bool checked );
     void toolButtonGCurvesChanged( void );
     void on_toolButtonGCurvesReset_clicked();
@@ -412,6 +413,8 @@ private slots:
     void on_lineEditTransferFunction_textChanged(const QString &arg1);
 
     void on_checkBoxDualIsoHorizontalStripesFix_clicked(bool checked);
+
+    void on_horizontalSliderDualIsoDarkHighlightThreshold_valueChanged(int position);
 
 private:
     Ui::MainWindow *ui;
@@ -552,6 +555,7 @@ private:
     int toolButtonDualIsoAliasMapCurrentIndex( void );
     int toolButtonDualIsoFullresBlendingCurrentIndex( void );
     int checkBoxDualIsoHorizontalStripesCurrentValue( void );
+    int horizontalSliderDualIsoDarkHighlightThresholdCurrentValue( void );
     int toolButtonDarkFrameSubtractionCurrentIndex( void );
     int toolButtonGCurvesCurrentIndex( void );
     void initCutInOut( int frames );

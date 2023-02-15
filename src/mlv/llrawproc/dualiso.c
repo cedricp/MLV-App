@@ -1529,12 +1529,11 @@ static inline void border_interpolate(struct raw_info raw_info, uint32_t * raw_b
     }
 }
 
-static inline void fullres_reconstruction(struct raw_info raw_info, uint32_t * fullres, uint32_t* dark, uint32_t* bright, uint32_t white_darkened, int * is_bright)
+static inline void fullres_reconstruction(struct raw_info raw_info, uint32_t * fullres, uint32_t* dark, uint32_t* bright, uint32_t white_darkened, int * is_bright, int dark_highlight_threshold)
 {
     int w = raw_info.width;
     int h = raw_info.height;
     
-    int dark_highlight_threshold = 400000; //Make it adjustable from 0 to 1048512 (MAX for 20bit)
     /* reconstruct a full-resolution image (discard interpolated fields whenever possible) */
     /* this has full detail and lowest possible aliasing, but it has high shadow noise and color artifacts when high-iso starts clipping */
 #ifndef STDOUT_SILENT
@@ -2531,7 +2530,7 @@ static void find_and_fix_bad_pixels(struct raw_info raw_info, uint32_t * raw_buf
 //    return round(raw_adjusted + fast_randn05());
 //}
 
-int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int interp_method, int use_alias_map, int use_fullres, int chroma_smooth_method, int vertical_stripes_fix, int use_horizontal_stripe_fix, int fix_bad_pixels_dual, int bad_pixels_search_method)
+int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int interp_method, int use_alias_map, int use_fullres, int chroma_smooth_method, int vertical_stripes_fix, int use_horizontal_stripe_fix, int fix_bad_pixels_dual, int bad_pixels_search_method, int dark_highlight_threshold)
 {
     int w = raw_info.width;
     int h = raw_info.height;
@@ -2829,7 +2828,7 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
 #ifdef PERF_INFO
     perf_clock = clock();
 #endif
-        fullres_reconstruction(raw_info, fullres, dark, bright, white_darkened, is_bright);
+        fullres_reconstruction(raw_info, fullres, dark, bright, white_darkened, is_bright, dark_highlight_threshold);
 #ifdef PERF_INFO
     perf_clock = clock()-perf_clock;
     printf("identify_bright_and_dark_fields took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);

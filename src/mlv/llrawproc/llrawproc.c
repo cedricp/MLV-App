@@ -319,7 +319,8 @@ void applyLLRawProcObject(mlvObject_t * video, uint16_t * raw_image_buff, size_t
                                video->llrawproc->vertical_stripes,
                                video->llrawproc->diso_hstripes,
                                video->llrawproc->bad_pixels,
-                               video->llrawproc->bps_method);
+                               video->llrawproc->bps_method,
+                               video->llrawproc->diso_dh_threshold);
 
             /* for full20bit set diso levels and bit depth to 16 bit, needed for cDNG export */
             int bits_shift = 16 - raw_info.bits_per_pixel;
@@ -570,6 +571,16 @@ int llrpGetDualIsoHorizontalStripesFixMode(mlvObject_t * video)
 void llrpSetDualIsoHorizontalStripesFixMode(mlvObject_t * video, int value)
 {
     video->llrawproc->diso_hstripes = value;
+}
+
+int llrpGetDualDarkHighlightThresholdValue(mlvObject_t * video)
+{
+    return video->llrawproc->diso_dh_threshold;
+}
+
+void llrpSetDualDarkHighlightThresholdValue(mlvObject_t * video, int value)
+{
+    video->llrawproc->diso_dh_threshold = value;
 }
 
 int llrpGetDualIsoFullResBlendingMode(mlvObject_t * video)

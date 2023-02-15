@@ -93,6 +93,9 @@ void llrpSetDualIsoFullResBlendingMode(mlvObject_t * video, int value);
 int llrpGetDualIsoHorizontalStripesFixMode(mlvObject_t * video);
 void llrpSetDualIsoHorizontalStripesFixMode(mlvObject_t * video, int value);
 
+int llrpGetDualDarkHighlightThresholdValue(mlvObject_t * video);
+void llrpSetDualDarkHighlightThresholdValue(mlvObject_t * video, int value);
+
 enum { DISO_INVALID, DISO_FORCED, DISO_VALID }; // Return values
 int llrpGetDualIsoValidity(mlvObject_t * video);
 void llrpSetDualIsoValidity(mlvObject_t * video, int diso_force);

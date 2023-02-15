@@ -5636,11 +5636,16 @@ int MainWindow::toolButtonDualIsoFullresBlendingCurrentIndex()
     else return 1;
 }
 
-
 //Get checkbox status of dual iso horizontal stripes fix
 int MainWindow::checkBoxDualIsoHorizontalStripesCurrentValue()
 {
     return ui->checkBoxDualIsoHorizontalStripesFix->isChecked();
+}
+
+//Get Dark Highlight Threshold slider value
+int MainWindow::horizontalSliderDualIsoDarkHighlightThresholdCurrentValue()
+{
+    return ui->horizontalSliderDualIsoDarkHighlightThreshold->value();
 }
 
 //Get toolbutton index of Darkframe Subtraction On/Off
@@ -8498,6 +8503,8 @@ void MainWindow::toolButtonDualIsoChanged( void )
         ui->DualISOInterpolationLabel->setEnabled( true );
         ui->DualISOAliasMapLabel->setEnabled( true );
         ui->checkBoxDualIsoHorizontalStripesFix->setEnabled( true );
+        ui->horizontalSliderDualIsoDarkHighlightThreshold->setEnabled( true );
+        this->horizontalSliderDualIsoDarkHighlightThresholdChanged();
     }
     else
     {
@@ -8508,6 +8515,7 @@ void MainWindow::toolButtonDualIsoChanged( void )
         ui->DualISOInterpolationLabel->setEnabled( false );
         ui->DualISOAliasMapLabel->setEnabled( false );
         ui->checkBoxDualIsoHorizontalStripesFix->setEnabled( false );
+        ui->horizontalSliderDualIsoDarkHighlightThreshold->setEnabled( false );
     }
 
 //    if (toolButtonDualIsoCurrentIndex() > 0){
@@ -8561,6 +8569,17 @@ void MainWindow::checkBoxDualIsoHorizontalStripesFixChanged( void )
     llrpComputeStripesOn(m_pMlvObject);
     llrpResetFpmStatus(m_pMlvObject);
     llrpResetBpmStatus(m_pMlvObject);
+    resetMlvCache( m_pMlvObject );
+    resetMlvCachedFrame( m_pMlvObject );
+    m_frameChanged = true;
+}
+
+//DualISO Interpolation changed
+void MainWindow::horizontalSliderDualIsoDarkHighlightThresholdChanged( void )
+{
+    int currentValue = horizontalSliderDualIsoDarkHighlightThresholdCurrentValue();
+    ui->label_DarkHighlightThresholdVal->setText( QString("%1").arg( currentValue ) );
+    llrpSetDualDarkHighlightThresholdValue( m_pMlvObject, currentValue );
     resetMlvCache( m_pMlvObject );
     resetMlvCachedFrame( m_pMlvObject );
     m_frameChanged = true;
@@ -10728,5 +10747,11 @@ void MainWindow::on_actionSaveSessionMetadata_triggered()
 
     //Write file
     m_pModel->writeMetadataToCsv( fileName );
+}
+
+
+void MainWindow::on_horizontalSliderDualIsoDarkHighlightThreshold_valueChanged(int position)
+{
+    this->horizontalSliderDualIsoDarkHighlightThresholdChanged();
 }
 

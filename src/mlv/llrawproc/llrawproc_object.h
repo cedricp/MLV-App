@@ -54,6 +54,7 @@ typedef struct
     int diso_alias_map;   // flag for Alias Map switchin on/off
     int diso_frblending;  // flag for Fullres Blending switching on/off
     int diso_hstripes;    // flag for Horizontal Stripes Fix switching on/off
+    int diso_dh_threshold;
     int dark_frame;       // flag for Dark Frame subtraction mode 0 = off, 1 = ext, 2 = int
 
     /* cDNG bit depth and black/white levels */
