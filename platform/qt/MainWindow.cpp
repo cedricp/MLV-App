@@ -3195,23 +3195,43 @@ void MainWindow::startExportAVFoundation(QString fileName)
         QFile( fileName ).rename( tempFileName );
 
         //FFMpeg export
+        QString ffmpegAudioCommand = QCoreApplication::applicationDirPath() + QString( "/ffmpeg" );
         QStringList ffmpegAudioCommandArguments;
-        QString ffmpegPath = QCoreApplication::applicationDirPath() +"/"+QString("ffmpeg");
+
 #ifdef STDOUT_SILENT
         ffmpegAudioCommandArguments << QString( "-loglevel" ) << QString( "quiet" );
 #endif
         ffmpegAudioCommandArguments << QString( "-y") << QString("-i") << QString("%1").arg( tempFileName ) << QString("-i") << QString("%1").arg( wavFileName ) << QString("-map") << QString("0:v:0") << QString("-map") << QString("1:a:0") << QString("-c:v") << QString("copy") << QString("-c:a") << QString("aac") << QString("-b:a") << QString("160k") << QString("%1").arg( fileName );
 
-        QProcess ffmpegProc;
-        ffmpegProc.setProgram(ffmpegPath);
-        ffmpegProc.setArguments(ffmpegAudioCommandArguments);
-        ffmpegProc.start();
-        ffmpegProc.waitForFinished(-1);
-//        qDebug() << ffmpegProc.readAllStandardError() << Qt::endl;
-//        qDebug() << ffmpegProc.readAllStandardOutput() << Qt::endl;
+        ffmpegAudioCommandArguments << QString( "-y" )
+                                    << QString( "-i" )
+                                    << QString( "%1" ).arg( tempFileName )
+                                    << QString( "-i" )
+                                    << QString( "%1" ).arg( wavFileName )
+                                    << QString( "-map" )
+                                    << QString( "0:0" )
+                                    << QString( "-map" )
+                                    << QString( "1:0" )
+                                    << QString( "-c" )
+                                    << QString( "copy" )
+                                    << QString( "%1" ).arg( fileName );
 
-        QFile( tempFileName ).remove();
-        QFile( wavFileName ).remove();
+        QProcess ffmpegProc;
+        int i = 0;
+        //Try 3x with delay. AVFoundation lib maybe isn't ready yet.
+        while( ffmpegProc.execute( ffmpegAudioCommand, ffmpegAudioCommandArguments ) != 0 && i < 3 )
+        {
+            i++;
+            QThread::msleep( 500 );
+            //Abort pressed? -> End the loop
+            if( m_exportAbortPressed ) break;
+        }
+        if( i < 3 && !m_exportAbortPressed )
+        {
+            QFile( tempFileName ).remove();
+            QFile( wavFileName ).remove();
+        }
+        else QMessageBox::critical( this, APPNAME, tr( "Merging audio to AVFoundation video for %1 failed." ).arg( fileName ) );
     }
 
     //If we don't like amaze we switch it off again
