@@ -120,7 +120,7 @@
      <x>0</x>
      <y>0</y>
      <width>1200</width>
-     <height>22</height>
+     <height>37</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -467,9 +467,9 @@ QGroupBox::indicator:checked:disabled {
           <property name="geometry">
            <rect>
             <x>0</x>
-            <y>-484</y>
-            <width>354</width>
-            <height>5791</height>
+            <y>-384</y>
+            <width>269</width>
+            <height>5842</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayoutScrollArea">
@@ -2528,13 +2528,35 @@ QGroupBox::indicator:checked:disabled {
                   </layout>
                  </item>
                  <item row="27" column="0">
-                  <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,0">
+                  <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,0,0">
                    <property name="bottomMargin">
                     <number>0</number>
                    </property>
                    <property name="verticalSpacing">
                     <number>0</number>
                    </property>
+                   <item row="2" column="0" colspan="3">
+                    <widget class="QSlider" name="horizontalSliderDualIsoDarkHighlightThreshold">
+                     <property name="maximum">
+                      <number>1048512</number>
+                     </property>
+                     <property name="singleStep">
+                      <number>10000</number>
+                     </property>
+                     <property name="pageStep">
+                      <number>20000</number>
+                     </property>
+                     <property name="value">
+                      <number>400000</number>
+                     </property>
+                     <property name="tracking">
+                      <bool>false</bool>
+                     </property>
+                     <property name="orientation">
+                      <enum>Qt::Horizontal</enum>
+                     </property>
+                    </widget>
+                   </item>
                    <item row="1" column="0">
                     <widget class="QLabel" name="DualISODarkHighlightThresholdLabel">
                      <property name="sizePolicy">
@@ -2548,12 +2570,18 @@ QGroupBox::indicator:checked:disabled {
                        <pointsize>10</pointsize>
                       </font>
                      </property>
+                     <property name="toolTip">
+                      <string/>
+                     </property>
+                     <property name="whatsThis">
+                      <string/>
+                     </property>
                      <property name="text">
                       <string>Pink Stripes Fix</string>
                      </property>
                     </widget>
                    </item>
-                   <item row="1" column="1">
+                   <item row="1" column="2">
                     <widget class="DoubleClickLabel" name="label_DarkHighlightThresholdVal">
                      <property name="sizePolicy">
                       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -2577,25 +2605,28 @@ QGroupBox::indicator:checked:disabled {
                      </property>
                     </widget>
                    </item>
-                   <item row="2" column="0" colspan="2">
-                    <widget class="QSlider" name="horizontalSliderDualIsoDarkHighlightThreshold">
-                     <property name="maximum">
-                      <number>1048512</number>
+                   <item row="1" column="1">
+                    <widget class="QLabel" name="label_38">
+                     <property name="sizePolicy">
+                      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                       <horstretch>0</horstretch>
+                       <verstretch>0</verstretch>
+                      </sizepolicy>
                      </property>
-                     <property name="singleStep">
-                      <number>10000</number>
+                     <property name="baseSize">
+                      <size>
+                       <width>16</width>
+                       <height>16</height>
+                      </size>
                      </property>
-                     <property name="pageStep">
-                      <number>20000</number>
+                     <property name="toolTip">
+                      <string>Set to 0 to disable.&lt;br&gt; Start with the maximum value and lower it until the stripes are not longer visible.</string>
                      </property>
-                     <property name="value">
-                      <number>400000</number>
+                     <property name="text">
+                      <string/>
                      </property>
-                     <property name="tracking">
-                      <bool>false</bool>
-                     </property>
-                     <property name="orientation">
-                      <enum>Qt::Horizontal</enum>
+                     <property name="pixmap">
+                      <pixmap resource="ressources.qrc">:/IMG/IMG/icon-info-16.png</pixmap>
                      </property>
                     </widget>
                    </item>

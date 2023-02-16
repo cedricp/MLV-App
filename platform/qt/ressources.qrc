@@ -7,6 +7,7 @@
         <file>IMG/Grey-Ball-icon.png</file>
         <file>IMG/PixelSelector.png</file>
         <file>IMG/DummyTrans.png</file>
+        <file>IMG/icon-info-16.png</file>
     </qresource>
     <qresource prefix="/RetinaIMG">
         <file>RetinaIMG/Export-To-File-icon.png</file>
