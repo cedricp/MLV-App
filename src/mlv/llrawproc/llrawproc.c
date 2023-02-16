@@ -122,7 +122,7 @@ llrawprocObject_t * initLLRawProcObject()
     /* set defaults */
     llrawproc->vertical_stripes = 1;
     llrawproc->focus_pixels = 0;
-    llrawproc->fpi_method = 0;
+    llrawproc->fpi_method = 2;
     llrawproc->bad_pixels = 1;
     llrawproc->bps_method = 0;
     llrawproc->bpi_method = 0;
@@ -137,6 +137,8 @@ llrawprocObject_t * initLLRawProcObject()
     llrawproc->diso_averaging = 0;
     llrawproc->diso_alias_map = 1;
     llrawproc->diso_frblending = 1;
+    llrawproc->diso_hstripes = 0;
+    llrawproc->diso_dh_threshold = 0;
     llrawproc->dark_frame = 0;
 
     llrawproc->dark_frame_filename = NULL;

@@ -113,6 +113,7 @@ private slots:
     void on_horizontalSliderCaRadius_valueChanged(int position);
     void on_horizontalSliderRawWhite_valueChanged(int position);
     void on_horizontalSliderRawBlack_valueChanged(int position);
+    void on_horizontalSliderDualIsoDarkHighlightThreshold_valueChanged(int position);
     void on_horizontalSliderTone_valueChanged(int position);
     void on_horizontalSliderToningStrength_valueChanged(int position);
     void on_horizontalSliderVidstabStepsize_valueChanged(int position);
@@ -158,6 +159,7 @@ private slots:
     void on_horizontalSliderCaRadius_doubleClicked();
     void on_horizontalSliderRawWhite_doubleClicked();
     void on_horizontalSliderRawBlack_doubleClicked();
+    void on_horizontalSliderDualIsoDarkHighlightThreshold_doubleClicked();
     void on_horizontalSliderTone_doubleClicked();
     void on_horizontalSliderToningStrength_doubleClicked();
     void on_horizontalSliderVidstabStepsize_doubleClicked();
@@ -274,6 +276,7 @@ private slots:
     void on_label_CaRadiusVal_doubleClicked( void );
     void on_label_RawWhiteVal_doubleClicked( void );
     void on_label_RawBlackVal_doubleClicked( void );
+    void on_label_DarkHighlightThresholdVal_doubleClicked( void );
     void on_label_ToneVal_doubleClicked( void );
     void on_label_ToningStrengthVal_doubleClicked( void );
     void on_label_VidstabStepsizeVal_doubleClicked( void );
@@ -301,8 +304,7 @@ private slots:
     void toolButtonDualIsoInterpolationChanged( void );
     void toolButtonDualIsoAliasMapChanged( void );
     void toolButtonDualIsoFullresBlendingChanged( void );
-    void checkBoxDualIsoHorizontalStripesFixChanged( void );
-    void horizontalSliderDualIsoDarkHighlightThresholdChanged( void );
+    void toolButtonDualIsoHorizontalStripesFixChanged( void );
     void toolButtonDarkFrameSubtractionChanged( bool checked );
     void toolButtonGCurvesChanged( void );
     void on_toolButtonGCurvesReset_clicked();
@@ -411,10 +413,6 @@ private slots:
     void on_actionShowUnmarkedClips_toggled(bool arg1);
 
     void on_lineEditTransferFunction_textChanged(const QString &arg1);
-
-    void on_checkBoxDualIsoHorizontalStripesFix_clicked(bool checked);
-
-    void on_horizontalSliderDualIsoDarkHighlightThreshold_valueChanged(int position);
 
 private:
     Ui::MainWindow *ui;
@@ -538,6 +536,7 @@ private:
     void setToolButtonDualIsoInterpolation( int index );
     void setToolButtonDualIsoAliasMap( int index );
     void setToolButtonDualIsoFullresBlending( int index );
+    void setToolButtonDualIsoHorizontalStripesFix( int index );
     void setToolButtonDarkFrameSubtraction( int index );
     void setToolButtonGCurves( int index );
     int toolButtonFocusPixelsCurrentIndex( void );
@@ -554,8 +553,7 @@ private:
     int toolButtonDualIsoInterpolationCurrentIndex( void );
     int toolButtonDualIsoAliasMapCurrentIndex( void );
     int toolButtonDualIsoFullresBlendingCurrentIndex( void );
-    int checkBoxDualIsoHorizontalStripesCurrentValue( void );
-    int horizontalSliderDualIsoDarkHighlightThresholdCurrentValue( void );
+    int toolButtonDualIsoHorizontalStripesFixCurrentIndex( void );
     int toolButtonDarkFrameSubtractionCurrentIndex( void );
     int toolButtonGCurvesCurrentIndex( void );
     void initCutInOut( int frames );

@@ -57,7 +57,7 @@ ReceiptSettings::ReceiptSettings()
     m_rawFixesEnabled = true;
     m_vertical_stripes = -1;
     m_focus_pixels = -1;
-    m_fpi_method = 0;
+    m_fpi_method = 2;
     m_bad_pixels = 0;
     m_bps_method = 0;
     m_bpi_method = 0;
@@ -71,6 +71,8 @@ ReceiptSettings::ReceiptSettings()
     m_dualIsoFrBlending = 1;
     m_dualIsoWhite = 0;
     m_dualIsoBlack = 0;
+    m_dualIsoDhThreshold = 0;
+    m_dualIsoHorizontalStripesFix = 0;
     m_darkFrameSubtractionMode = -1;
     m_darkFrameSubtractionName = QString( "No file selected" );
     m_stretchFactorX = 1.0;

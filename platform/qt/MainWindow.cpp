@@ -1241,12 +1241,6 @@ void MainWindow::initGui( void )
     ui->label_FilterStrengthText->setEnabled( false );
     ui->horizontalSliderFilterStrength->setEnabled( false );
 
-    //Hide DualIso Fullres Blending (only brings black frame if off)
-//    ui->DualISOFullresBlendingLabel->setVisible( false );
-//    ui->toolButtonDualIsoFullresBlending->setVisible( false );
-//    ui->toolButtonDualIsoFullresBlendingOff->setVisible( false );
-//    ui->toolButtonDualIsoFullresBlendingOn->setVisible( false );
-
     //Set up image in GUI
     QImage image(":/IMG/IMG/histogram.png");
     ui->labelScope->setScope( NULL, 0, 0, false, false, ScopesLabel::None );
@@ -3201,8 +3195,6 @@ void MainWindow::startExportAVFoundation(QString fileName)
 #ifdef STDOUT_SILENT
         ffmpegAudioCommandArguments << QString( "-loglevel" ) << QString( "quiet" );
 #endif
-        ffmpegAudioCommandArguments << QString( "-y") << QString("-i") << QString("%1").arg( tempFileName ) << QString("-i") << QString("%1").arg( wavFileName ) << QString("-map") << QString("0:v:0") << QString("-map") << QString("1:a:0") << QString("-c:v") << QString("copy") << QString("-c:a") << QString("aac") << QString("-b:a") << QString("160k") << QString("%1").arg( fileName );
-
         ffmpegAudioCommandArguments << QString( "-y" )
                                     << QString( "-i" )
                                     << QString( "%1" ).arg( tempFileName )
@@ -4498,6 +4490,8 @@ void MainWindow::setSliders(ReceiptSettings *receipt, bool paste)
     setToolButtonDualIsoInterpolation( receipt->dualIsoInterpolation() );
     setToolButtonDualIsoAliasMap( receipt->dualIsoAliasMap() );
     setToolButtonDualIsoFullresBlending( receipt->dualIsoFrBlending() );
+    setToolButtonDualIsoHorizontalStripesFix( receipt->dualIsoHorizontalStripesFix() );
+    ui->horizontalSliderDualIsoDarkHighlightThreshold->setValue( receipt->dualIsoDhThreshold() );
     ui->spinBoxDeflickerTarget->setValue( receipt->deflickerTarget() );
     on_spinBoxDeflickerTarget_valueChanged( receipt->deflickerTarget() );
     ui->lineEditDarkFrameFile->setText( receipt->darkFrameFileName() );
@@ -4686,8 +4680,10 @@ void MainWindow::setReceipt( ReceiptSettings *receipt )
     receipt->setDualIsoInterpolation( toolButtonDualIsoInterpolationCurrentIndex() );
     receipt->setDualIsoAliasMap( toolButtonDualIsoAliasMapCurrentIndex() );
     receipt->setDualIsoFrBlending( toolButtonDualIsoFullresBlendingCurrentIndex() );
+    receipt->setDualIsoHorizontalStripesFix( toolButtonDualIsoHorizontalStripesFixCurrentIndex() );
     receipt->setDualIsoWhite( processingGetWhiteLevel( m_pMlvObject->processing ) );
     receipt->setDualIsoBlack( processingGetBlackLevel( m_pMlvObject->processing ) );
+    receipt->setDualIsoDhThreshold( ui->horizontalSliderDualIsoDarkHighlightThreshold->value() );
     receipt->setDarkFrameFileName( ui->lineEditDarkFrameFile->text() );
     receipt->setDarkFrameEnabled( toolButtonDarkFrameSubtractionCurrentIndex() );
     receipt->setRawBlack( ui->horizontalSliderRawBlack->value() );
@@ -4813,8 +4809,10 @@ void MainWindow::replaceReceipt(ReceiptSettings *receiptTarget, ReceiptSettings 
     if( paste && cdui->checkBoxDualIso->isChecked() )          receiptTarget->setDualIsoInterpolation( receiptSource->dualIsoInterpolation() );
     if( paste && cdui->checkBoxDualIso->isChecked() )          receiptTarget->setDualIsoAliasMap( receiptSource->dualIsoAliasMap() );
     if( paste && cdui->checkBoxDualIso->isChecked() )          receiptTarget->setDualIsoFrBlending( receiptSource->dualIsoFrBlending() );
+    if( paste && cdui->checkBoxDualIso->isChecked() )          receiptTarget->setDualIsoHorizontalStripesFix( receiptSource->dualIsoHorizontalStripesFix() );
     if( paste && cdui->checkBoxDualIso->isChecked() )          receiptTarget->setDualIsoWhite( receiptSource->dualIsoWhite() );
     if( paste && cdui->checkBoxDualIso->isChecked() )          receiptTarget->setDualIsoBlack( receiptSource->dualIsoBlack() );
+    if( paste && cdui->checkBoxDualIso->isChecked() )          receiptTarget->setDualIsoDhThreshold( receiptSource->dualIsoDhThreshold() );
     if( paste && cdui->checkBoxRawBlackLevel->isChecked() )    receiptTarget->setRawBlack( receiptSource->rawBlack() );
     if( paste && cdui->checkBoxRawWhiteLevel->isChecked() )    receiptTarget->setRawWhite( receiptSource->rawWhite() );
 
@@ -5006,6 +5004,8 @@ void MainWindow::addClipToExportQueue(int row, QString fileName)
     receipt->setDualIsoInterpolation( GET_RECEIPT( row )->dualIsoInterpolation() );
     receipt->setDualIsoAliasMap( GET_RECEIPT( row )->dualIsoAliasMap() );
     receipt->setDualIsoFrBlending( GET_RECEIPT( row )->dualIsoFrBlending() );
+    receipt->setDualIsoHorizontalStripesFix( GET_RECEIPT( row )->dualIsoHorizontalStripesFix() );
+    receipt->setDualIsoDhThreshold( GET_RECEIPT( row )->dualIsoDhThreshold() );
     receipt->setDualIsoWhite( GET_RECEIPT( row )->dualIsoWhite() );
     receipt->setDualIsoBlack( GET_RECEIPT( row )->dualIsoBlack() );
     receipt->setDarkFrameFileName( GET_RECEIPT( row )->darkFrameFileName() );
@@ -5417,6 +5417,12 @@ void MainWindow::setToolButtonDualIso(int index)
     default: break;
     }
     if( actualize ) toolButtonDualIsoChanged();
+    /*
+//    if (toolButtonDualIsoCurrentIndex() > 0){
+//        setToolButtonBadPixelsIntMethod(1); //Best for Dual ISO
+//        setToolButtonFocusPixelsIntMethod(2); //Best for Dual ISO
+//        setToolButtonBadPixels(3); //Only method really working for Dual ISO and preferred in any mode anyways
+//    }*/
 }
 
 //Set Toolbuttons Dual Iso Interpolation
@@ -5470,21 +5476,22 @@ void MainWindow::setToolButtonDualIsoFullresBlending(int index)
     if( actualize ) toolButtonDualIsoFullresBlendingChanged();
 }
 
-//void MainWindow::setCheckBoxDualIsoHorizontalStripesFix(int index)
-//{
-//    bool actualize = false;
-//    if( index == checkBoxDualIsoHorizontalStripesFixCu ) actualize = true;
+//Set Toolbuttons Dual Iso Horizontal Stripes Fix On/Off
+void MainWindow::setToolButtonDualIsoHorizontalStripesFix(int index)
+{
+    bool actualize = false;
+    if( index == toolButtonDualIsoHorizontalStripesFixCurrentIndex() ) actualize = true;
 
-//    switch( index )
-//    {
-//    case 0: ui->toolButtonDualIsoAliasMapOff->setChecked( true );
-//        break;
-//    case 1: ui->toolButtonDualIsoAliasMapOn->setChecked( true );
-//        break;
-//    default: break;
-//    }
-//    if( actualize ) toolButtonDualIsoAliasMapChanged();
-//}
+    switch( index )
+    {
+    case 0: ui->toolButtonDualIsoHorizontalStripesFixOff->setChecked( true );
+        break;
+    case 1: ui->toolButtonDualIsoHorizontalStripesFixOn->setChecked( true );
+        break;
+    default: break;
+    }
+    if( actualize ) toolButtonDualIsoHorizontalStripesFixChanged();
+}
 
 //Set Toolbuttons Darkframe Subtraction On/Off
 void MainWindow::setToolButtonDarkFrameSubtraction(int index)
@@ -5636,16 +5643,10 @@ int MainWindow::toolButtonDualIsoFullresBlendingCurrentIndex()
     else return 1;
 }
 
-//Get checkbox status of dual iso horizontal stripes fix
-int MainWindow::checkBoxDualIsoHorizontalStripesCurrentValue()
+int MainWindow::toolButtonDualIsoHorizontalStripesFixCurrentIndex()
 {
-    return ui->checkBoxDualIsoHorizontalStripesFix->isChecked();
-}
-
-//Get Dark Highlight Threshold slider value
-int MainWindow::horizontalSliderDualIsoDarkHighlightThresholdCurrentValue()
-{
-    return ui->horizontalSliderDualIsoDarkHighlightThreshold->value();
+    if( ui->toolButtonDualIsoHorizontalStripesFixOff->isChecked() ) return 0;
+    else return 1;
 }
 
 //Get toolbutton index of Darkframe Subtraction On/Off
@@ -6107,6 +6108,15 @@ void MainWindow::on_horizontalSliderRawBlack_valueChanged(int position)
     m_frameChanged = true;
 }
 
+void MainWindow::on_horizontalSliderDualIsoDarkHighlightThreshold_valueChanged(int position)
+{
+    ui->label_DarkHighlightThresholdVal->setText( QString("%1").arg( position ) );
+    llrpSetDualDarkHighlightThresholdValue( m_pMlvObject, position );
+    resetMlvCache( m_pMlvObject );
+    resetMlvCachedFrame( m_pMlvObject );
+    m_frameChanged = true;
+}
+
 void MainWindow::on_horizontalSliderTone_valueChanged(int position)
 {
     QColor color;
@@ -6411,6 +6421,13 @@ void MainWindow::on_horizontalSliderRawWhite_doubleClicked()
 void MainWindow::on_horizontalSliderRawBlack_doubleClicked()
 {
     ui->horizontalSliderRawBlack->setValue( getMlvOriginalBlackLevel( m_pMlvObject ) * 10 );
+}
+
+void MainWindow::on_horizontalSliderDualIsoDarkHighlightThreshold_doubleClicked()
+{
+    ReceiptSettings *sliders = new ReceiptSettings(); //default
+    ui->horizontalSliderDualIsoDarkHighlightThreshold->setValue( sliders->dualIsoDhThreshold() );
+    delete sliders;
 }
 
 void MainWindow::on_horizontalSliderTone_doubleClicked()
@@ -8082,6 +8099,14 @@ void MainWindow::on_label_RawBlackVal_doubleClicked()
     ui->horizontalSliderRawBlack->setValue( editSlider.getValue() );
 }
 
+void MainWindow::on_label_DarkHighlightThresholdVal_doubleClicked()
+{
+    EditSliderValueDialog editSlider;
+    editSlider.autoSetup( ui->horizontalSliderDualIsoDarkHighlightThreshold, ui->label_DarkHighlightThresholdVal, 1.0, 0, 1.0 );
+    editSlider.exec();
+    ui->horizontalSliderDualIsoDarkHighlightThreshold->setValue( editSlider.getValue() );
+}
+
 void MainWindow::on_label_ToneVal_doubleClicked()
 {
     EditSliderValueDialog editSlider;
@@ -8502,9 +8527,11 @@ void MainWindow::toolButtonDualIsoChanged( void )
         ui->toolButtonDualIsoFullresBlending->setEnabled( true );
         ui->DualISOInterpolationLabel->setEnabled( true );
         ui->DualISOAliasMapLabel->setEnabled( true );
-        ui->checkBoxDualIsoHorizontalStripesFix->setEnabled( true );
+        ui->toolButtonDualIsoHorizontalStripesFix->setEnabled( true );
         ui->horizontalSliderDualIsoDarkHighlightThreshold->setEnabled( true );
-        this->horizontalSliderDualIsoDarkHighlightThresholdChanged();
+        ui->labelDualIsoHorizontalStripesFix->setEnabled( true );
+        ui->label_DualISODarkHighlightThreshold->setEnabled( true );
+        ui->label_DarkHighlightThresholdVal->setEnabled( true );
     }
     else
     {
@@ -8514,15 +8541,12 @@ void MainWindow::toolButtonDualIsoChanged( void )
         ui->toolButtonDualIsoFullresBlending->setEnabled( false );
         ui->DualISOInterpolationLabel->setEnabled( false );
         ui->DualISOAliasMapLabel->setEnabled( false );
-        ui->checkBoxDualIsoHorizontalStripesFix->setEnabled( false );
+        ui->toolButtonDualIsoHorizontalStripesFix->setEnabled( false );
         ui->horizontalSliderDualIsoDarkHighlightThreshold->setEnabled( false );
+        ui->labelDualIsoHorizontalStripesFix->setEnabled( false );
+        ui->label_DualISODarkHighlightThreshold->setEnabled( false );
+        ui->label_DarkHighlightThresholdVal->setEnabled( false );
     }
-
-//    if (toolButtonDualIsoCurrentIndex() > 0){
-//        setToolButtonBadPixelsIntMethod(1); //Best for Dual ISO
-//        setToolButtonFocusPixelsIntMethod(2); //Best for Dual ISO
-//        setToolButtonBadPixels(3); //Only method really working for Dual ISO and preferred in any mode anyways
-//    }
 
     //Set dualIso mode
     llrpSetDualIsoMode( m_pMlvObject, toolButtonDualIsoCurrentIndex() );
@@ -8563,35 +8587,15 @@ void MainWindow::toolButtonDualIsoFullresBlendingChanged( void )
 }
 
 //DualISO Horizontal Stripes Fix changes
-void MainWindow::checkBoxDualIsoHorizontalStripesFixChanged( void )
+void MainWindow::toolButtonDualIsoHorizontalStripesFixChanged( void )
 {
-    llrpSetDualIsoHorizontalStripesFixMode( m_pMlvObject, checkBoxDualIsoHorizontalStripesCurrentValue() );
+    llrpSetDualIsoHorizontalStripesFixMode( m_pMlvObject, toolButtonDualIsoHorizontalStripesFixCurrentIndex() );
     llrpComputeStripesOn(m_pMlvObject);
     llrpResetFpmStatus(m_pMlvObject);
     llrpResetBpmStatus(m_pMlvObject);
     resetMlvCache( m_pMlvObject );
     resetMlvCachedFrame( m_pMlvObject );
     m_frameChanged = true;
-}
-
-//DualISO Interpolation changed
-void MainWindow::horizontalSliderDualIsoDarkHighlightThresholdChanged( void )
-{
-    int currentValue = horizontalSliderDualIsoDarkHighlightThresholdCurrentValue();
-    ui->label_DarkHighlightThresholdVal->setText( QString("%1").arg( currentValue ) );
-    llrpSetDualDarkHighlightThresholdValue( m_pMlvObject, currentValue );
-    resetMlvCache( m_pMlvObject );
-    resetMlvCachedFrame( m_pMlvObject );
-    m_frameChanged = true;
-}
-
-//Set CheckBox Dual Iso Horizontal Stripes Fix
-void MainWindow::on_checkBoxDualIsoHorizontalStripesFix_clicked(bool checked)
-{
-    bool actualize = false;
-    if( checked == checkBoxDualIsoHorizontalStripesCurrentValue() ) actualize = true;
-    ui->checkBoxDualIsoHorizontalStripesFix->setChecked( checked );
-    if( actualize ) checkBoxDualIsoHorizontalStripesFixChanged();
 }
 
 //Darkframe Subtraction On/Off changed
@@ -8739,6 +8743,9 @@ void MainWindow::on_checkBoxRawFixEnable_clicked(bool checked)
     ui->toolButtonDualIsoInterpolation->setEnabled( checked && ( toolButtonDualIsoCurrentIndex() == 1 ) );
     ui->toolButtonDualIsoAliasMap->setEnabled( checked && ( toolButtonDualIsoCurrentIndex() == 1 ) );
     ui->toolButtonDualIsoFullresBlending->setEnabled( checked && ( toolButtonDualIsoCurrentIndex() == 1 ) );
+    ui->horizontalSliderDualIsoDarkHighlightThreshold->setEnabled( checked && ( toolButtonDualIsoCurrentIndex() == 1 ) );
+    ui->label_DualISODarkHighlightThreshold->setEnabled( checked && ( toolButtonDualIsoCurrentIndex() == 1 ) );
+    ui->label_DarkHighlightThresholdVal->setEnabled( checked && ( toolButtonDualIsoCurrentIndex() == 1 ) );
     ui->spinBoxDeflickerTarget->setEnabled( checked );
     ui->toolButtonBadPixelsSearchMethodNormal->setEnabled( checked );
     ui->toolButtonBadPixelsSearchMethodAggressive->setEnabled( checked );
@@ -10748,10 +10755,3 @@ void MainWindow::on_actionSaveSessionMetadata_triggered()
     //Write file
     m_pModel->writeMetadataToCsv( fileName );
 }
-
-
-void MainWindow::on_horizontalSliderDualIsoDarkHighlightThreshold_valueChanged(int position)
-{
-    this->horizontalSliderDualIsoDarkHighlightThresholdChanged();
-}
-
