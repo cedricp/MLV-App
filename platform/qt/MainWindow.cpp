@@ -3949,6 +3949,16 @@ void MainWindow::readXmlElementsFromFile(QXmlStreamReader *Rxml, ReceiptSettings
             receipt->setDualIsoFrBlending( Rxml->readElementText().toInt() );
             Rxml->readNext();
         }
+        else if( Rxml->isStartElement() && Rxml->name() == QString( "dualIsoHorizontalStripes" ) )
+        {
+            receipt->setDualIsoHorizontalStripes( Rxml->readElementText().toInt() );
+            Rxml->readNext();
+        }
+        else if( Rxml->isStartElement() && Rxml->name() == QString( "dualIsoDhThreshold" ) )
+        {
+            receipt->setDualIsoDhThreshold( Rxml->readElementText().toInt() );
+            Rxml->readNext();
+        }
         else if( Rxml->isStartElement() && Rxml->name() == QString( "dualIsoWhite" ) )
         {
             receipt->setDualIsoWhite( Rxml->readElementText().toUInt() );
@@ -4194,6 +4204,8 @@ void MainWindow::writeXmlElementsToFile(QXmlStreamWriter *xmlWriter, ReceiptSett
     xmlWriter->writeTextElement( "dualIsoInterpolation",    QString( "%1" ).arg( receipt->dualIsoInterpolation() ) );
     xmlWriter->writeTextElement( "dualIsoAliasMap",         QString( "%1" ).arg( receipt->dualIsoAliasMap() ) );
     xmlWriter->writeTextElement( "dualIsoFrBlending",       QString( "%1" ).arg( receipt->dualIsoFrBlending() ) );
+    xmlWriter->writeTextElement( "dualIsoHorizontalStripes",QString( "%1" ).arg( receipt->dualIsoHorizontalStripes() ) );
+    xmlWriter->writeTextElement( "dualIsoDhThreshold",      QString( "%1" ).arg( receipt->dualIsoDhThreshold() ) );
     xmlWriter->writeTextElement( "dualIsoWhite",            QString( "%1" ).arg( receipt->dualIsoWhite() ) );
     xmlWriter->writeTextElement( "dualIsoBlack",            QString( "%1" ).arg( receipt->dualIsoBlack() ) );
     xmlWriter->writeTextElement( "darkFrameFileName",       QString( "%1" ).arg( receipt->darkFrameFileName() ) );
@@ -4490,7 +4502,7 @@ void MainWindow::setSliders(ReceiptSettings *receipt, bool paste)
     setToolButtonDualIsoInterpolation( receipt->dualIsoInterpolation() );
     setToolButtonDualIsoAliasMap( receipt->dualIsoAliasMap() );
     setToolButtonDualIsoFullresBlending( receipt->dualIsoFrBlending() );
-    setToolButtonDualIsoHorizontalStripesFix( receipt->dualIsoHorizontalStripesFix() );
+    setToolButtonDualIsoHorizontalStripesFix( receipt->dualIsoHorizontalStripes() );
     ui->horizontalSliderDualIsoDarkHighlightThreshold->setValue( receipt->dualIsoDhThreshold() );
     ui->spinBoxDeflickerTarget->setValue( receipt->deflickerTarget() );
     on_spinBoxDeflickerTarget_valueChanged( receipt->deflickerTarget() );
@@ -4680,7 +4692,7 @@ void MainWindow::setReceipt( ReceiptSettings *receipt )
     receipt->setDualIsoInterpolation( toolButtonDualIsoInterpolationCurrentIndex() );
     receipt->setDualIsoAliasMap( toolButtonDualIsoAliasMapCurrentIndex() );
     receipt->setDualIsoFrBlending( toolButtonDualIsoFullresBlendingCurrentIndex() );
-    receipt->setDualIsoHorizontalStripesFix( toolButtonDualIsoHorizontalStripesFixCurrentIndex() );
+    receipt->setDualIsoHorizontalStripes( toolButtonDualIsoHorizontalStripesFixCurrentIndex() );
     receipt->setDualIsoWhite( processingGetWhiteLevel( m_pMlvObject->processing ) );
     receipt->setDualIsoBlack( processingGetBlackLevel( m_pMlvObject->processing ) );
     receipt->setDualIsoDhThreshold( ui->horizontalSliderDualIsoDarkHighlightThreshold->value() );
@@ -4809,7 +4821,7 @@ void MainWindow::replaceReceipt(ReceiptSettings *receiptTarget, ReceiptSettings 
     if( paste && cdui->checkBoxDualIso->isChecked() )          receiptTarget->setDualIsoInterpolation( receiptSource->dualIsoInterpolation() );
     if( paste && cdui->checkBoxDualIso->isChecked() )          receiptTarget->setDualIsoAliasMap( receiptSource->dualIsoAliasMap() );
     if( paste && cdui->checkBoxDualIso->isChecked() )          receiptTarget->setDualIsoFrBlending( receiptSource->dualIsoFrBlending() );
-    if( paste && cdui->checkBoxDualIso->isChecked() )          receiptTarget->setDualIsoHorizontalStripesFix( receiptSource->dualIsoHorizontalStripesFix() );
+    if( paste && cdui->checkBoxDualIso->isChecked() )          receiptTarget->setDualIsoHorizontalStripes( receiptSource->dualIsoHorizontalStripes() );
     if( paste && cdui->checkBoxDualIso->isChecked() )          receiptTarget->setDualIsoWhite( receiptSource->dualIsoWhite() );
     if( paste && cdui->checkBoxDualIso->isChecked() )          receiptTarget->setDualIsoBlack( receiptSource->dualIsoBlack() );
     if( paste && cdui->checkBoxDualIso->isChecked() )          receiptTarget->setDualIsoDhThreshold( receiptSource->dualIsoDhThreshold() );
@@ -5004,7 +5016,7 @@ void MainWindow::addClipToExportQueue(int row, QString fileName)
     receipt->setDualIsoInterpolation( GET_RECEIPT( row )->dualIsoInterpolation() );
     receipt->setDualIsoAliasMap( GET_RECEIPT( row )->dualIsoAliasMap() );
     receipt->setDualIsoFrBlending( GET_RECEIPT( row )->dualIsoFrBlending() );
-    receipt->setDualIsoHorizontalStripesFix( GET_RECEIPT( row )->dualIsoHorizontalStripesFix() );
+    receipt->setDualIsoHorizontalStripes( GET_RECEIPT( row )->dualIsoHorizontalStripes() );
     receipt->setDualIsoDhThreshold( GET_RECEIPT( row )->dualIsoDhThreshold() );
     receipt->setDualIsoWhite( GET_RECEIPT( row )->dualIsoWhite() );
     receipt->setDualIsoBlack( GET_RECEIPT( row )->dualIsoBlack() );

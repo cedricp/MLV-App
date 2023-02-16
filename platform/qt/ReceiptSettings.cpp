@@ -72,7 +72,7 @@ ReceiptSettings::ReceiptSettings()
     m_dualIsoWhite = 0;
     m_dualIsoBlack = 0;
     m_dualIsoDhThreshold = 0;
-    m_dualIsoHorizontalStripesFix = 0;
+    m_dualIsoHorizontalStripes = 0;
     m_darkFrameSubtractionMode = -1;
     m_darkFrameSubtractionName = QString( "No file selected" );
     m_stretchFactorX = 1.0;

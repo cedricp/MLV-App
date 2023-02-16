@@ -92,7 +92,7 @@ public:
     void setDualIsoWhite( uint32_t level )    {m_dualIsoWhite = level;}
     void setDualIsoBlack( uint32_t level )    {m_dualIsoBlack = level;}
     void setDualIsoDhThreshold( int value )   {m_dualIsoDhThreshold = value;}
-    void setDualIsoHorizontalStripesFix( int on ){m_dualIsoHorizontalStripesFix = on;}
+    void setDualIsoHorizontalStripes( int on ){m_dualIsoHorizontalStripes = on;}
     void setDarkFrameEnabled( int on )        {m_darkFrameSubtractionMode = on;}
     void setDarkFrameFileName( QString name ) {m_darkFrameSubtractionName = name;}
     void setStretchFactorX( double factor )   {m_stretchFactorX = factor;}
@@ -184,7 +184,7 @@ public:
     int dualIsoAliasMap( void ){return m_dualIsoAliasMap;}
     int dualIsoFrBlending( void ){return m_dualIsoFrBlending;}
     int dualIsoDhThreshold( void ){return m_dualIsoDhThreshold;}
-    int dualIsoHorizontalStripesFix( void ){return m_dualIsoHorizontalStripesFix;}
+    int dualIsoHorizontalStripes( void ){return m_dualIsoHorizontalStripes;}
     uint32_t dualIsoWhite( void ){return m_dualIsoWhite;}
     uint32_t dualIsoBlack( void ){return m_dualIsoBlack;}
     int darkFrameEnabled( void ) {return m_darkFrameSubtractionMode;}
@@ -301,7 +301,7 @@ private:
     int m_dualIsoAliasMap;  // flag for Alias Map switchin on/off
     int m_dualIsoFrBlending;  // flag for Fullres Blending switching on/off
     int m_dualIsoDhThreshold; // Threshold for dark highlights
-    int m_dualIsoHorizontalStripesFix; // Vertical Stripes Fix On/Off
+    int m_dualIsoHorizontalStripes; // Vertical Stripes Fix On/Off
     uint32_t m_dualIsoWhite;
     uint32_t m_dualIsoBlack;
     int m_darkFrameSubtractionMode; // 0 = off, 1 = External, 2 = Internal
