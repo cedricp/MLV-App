@@ -1534,12 +1534,13 @@ static inline void fullres_reconstruction(struct raw_info raw_info, uint32_t * f
     int w = raw_info.width;
     int h = raw_info.height;
     
+    int reversed_dark_highlight_threshold = dark_highlight_threshold > 1048512 ? 0 : 1048512 - dark_highlight_threshold;
     /* reconstruct a full-resolution image (discard interpolated fields whenever possible) */
     /* this has full detail and lowest possible aliasing, but it has high shadow noise and color artifacts when high-iso starts clipping */
 #ifndef STDOUT_SILENT
     printf("Full-res reconstruction...\n");
 #endif
-#pragma omp parallel for schedule(static) default(none) shared(dark_highlight_threshold, fullres, is_bright, dark, bright, white_darkened, h, w) collapse(2)
+#pragma omp parallel for schedule(static) default(none) shared(reversed_dark_highlight_threshold, fullres, is_bright, dark, bright, white_darkened, h, w) collapse(2)
     for (int y = 0; y < h; y ++)
     {
         for (int x = 0; x < w; x ++)
@@ -1548,7 +1549,7 @@ static inline void fullres_reconstruction(struct raw_info raw_info, uint32_t * f
             if (BRIGHT_ROW)
             {
                 uint32_t f = bright[x + y*w];
-                if (dark_highlight_threshold && d > f && (int)d > dark_highlight_threshold){
+                if (reversed_dark_highlight_threshold && d > f && (int)d > reversed_dark_highlight_threshold){
                     fullres[x + y*w] = d;
                 }else{
                     /* if the brighter copy is overexposed, the guessed pixel for sure has higher brightness */

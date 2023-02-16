@@ -120,7 +120,7 @@
      <x>0</x>
      <y>0</y>
      <width>1200</width>
-     <height>37</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -467,9 +467,9 @@ QGroupBox::indicator:checked:disabled {
           <property name="geometry">
            <rect>
             <x>0</x>
-            <y>-384</y>
-            <width>269</width>
-            <height>5842</height>
+            <y>-300</y>
+            <width>273</width>
+            <height>5791</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayoutScrollArea">
@@ -2547,7 +2547,7 @@ QGroupBox::indicator:checked:disabled {
                       <number>20000</number>
                      </property>
                      <property name="value">
-                      <number>400000</number>
+                      <number>0</number>
                      </property>
                      <property name="tracking">
                       <bool>false</bool>
@@ -2620,7 +2620,7 @@ QGroupBox::indicator:checked:disabled {
                       </size>
                      </property>
                      <property name="toolTip">
-                      <string>Set to 0 to disable.&lt;br&gt; Start with the maximum value and lower it until the stripes are not longer visible.</string>
+                      <string>Set to 0 to disable.&lt;br&gt; Slowly increase the value until the stripes are not longer visible.</string>
                      </property>
                      <property name="text">
                       <string/>
