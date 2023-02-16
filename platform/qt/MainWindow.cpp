@@ -4503,6 +4503,7 @@ void MainWindow::setSliders(ReceiptSettings *receipt, bool paste)
     setToolButtonDualIsoAliasMap( receipt->dualIsoAliasMap() );
     setToolButtonDualIsoFullresBlending( receipt->dualIsoFrBlending() );
     setToolButtonDualIsoHorizontalStripesFix( receipt->dualIsoHorizontalStripes() );
+    on_horizontalSliderDualIsoDarkHighlightThreshold_valueChanged( receipt->dualIsoDhThreshold() );
     ui->horizontalSliderDualIsoDarkHighlightThreshold->setValue( receipt->dualIsoDhThreshold() );
     ui->spinBoxDeflickerTarget->setValue( receipt->deflickerTarget() );
     on_spinBoxDeflickerTarget_valueChanged( receipt->deflickerTarget() );
