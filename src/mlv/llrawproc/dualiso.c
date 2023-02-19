@@ -352,7 +352,6 @@ static void compute_black_noise(struct raw_info raw_info, uint16_t * image_data,
             num++;
         }
     }
-    
     double mean = (double) black / num;
     
     /* compute standard deviation */
@@ -703,7 +702,7 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
      * - low percentiles are likely affected by noise (this process is essentially a histogram matching)
      * - as ad-hoc as it looks, it's the only method that passed all the test samples so far.
      */
-    int nmax = (w+2) * (h+2) / 9;   /* downsample by 3x3 for speed */
+    int nmax = (w+2) * (h+2) / 1;   /* downsample by 3x3 for speed */
     int * tmp = malloc(nmax * sizeof(tmp[0]));
     
     /* median_bright */
@@ -711,9 +710,9 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
 
 // This one and the next are tricky to parallelize, n values must follow the order to serve as tmp vector index. Could be rewritten so tmp is 2 dimensions
 //#xpragma omp parallel for schedule(static) default(none) shared(is_bright,bright,clip, y0,h,w,n,tmp) collapse(2)
-    for (int y = y0; y < h-2; y += 3)
+    for (int y = y0; y < h-2; y += 1)
     {
-        for (int x = 0; x < w; x += 3)
+        for (int x = 0; x < w; x += 1)
         {
             int b = bright[x + y*w];
             if (b < clip){
@@ -733,9 +732,9 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     /* median_dark */
     n = 0;
 //#xpragma omp parallel for schedule(static) default(none) shared(dark, bright, y0,h,w,n,tmp,clip)
-    for (int y = y0; y < h-2; y += 3)
+    for (int y = y0; y < h-2; y += 1)
     {
-        for (int x = 0; x < w; x += 3)
+        for (int x = 0; x < w; x += 1)
         {
             int d = dark[x + y*w];
             int b = bright[x + y*w];
@@ -757,9 +756,9 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     int* hi_dark = malloc(hi_nmax * sizeof(hi_dark[0]));
     int* hi_bright = malloc(hi_nmax * sizeof(hi_bright[0]));
     
-    for (int y = y0; y < h-2; y += 3)
+    for (int y = y0; y < h-2; y += 1)
     {
-        for (int x = 0; x < w; x += 3)
+        for (int x = 0; x < w; x += 1)
         {
             int d = dark[x + y*w];
             int b = bright[x + y*w];
@@ -2535,7 +2534,7 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
 {
     int w = raw_info.width;
     int h = raw_info.height;
-    
+
     if (w <= 0 || h <= 0) return 0;
 
 #ifdef PERF_INFO
@@ -2582,6 +2581,9 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     perf_clock = clock();
 #endif
     white_detect(raw_info, image_data, &white, &white_bright, is_bright);
+//    white = 16383;
+//    white_bright = 14880;
+
 #ifdef PERF_INFO
     perf_clock = clock()-perf_clock;
     printf("white_detect took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
@@ -2618,7 +2620,7 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     bright_noise *= 64;
     dark_noise_ev += 6;
     bright_noise_ev += 6;
-    
+
 #ifdef PERF_INFO
     perf_clock = clock();
 #endif
