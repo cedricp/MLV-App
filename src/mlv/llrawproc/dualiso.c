@@ -702,17 +702,18 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
      * - low percentiles are likely affected by noise (this process is essentially a histogram matching)
      * - as ad-hoc as it looks, it's the only method that passed all the test samples so far.
      */
-    int nmax = (w+2) * (h+2) / 1;   /* downsample by 3x3 for speed */
+    static const int sample_size = 3;
+    int nmax = (w+(sample_size-1)) * (h+(sample_size-1)) / (sample_size*sample_size);   /* downsample by 3x3 for speed */
     int * tmp = malloc(nmax * sizeof(tmp[0]));
     
     /* median_bright */
     int n = 0;
 
-// This one and the next are tricky to parallelize, n values must follow the order to serve as tmp vector index. Could be rewritten so tmp is 2 dimensions
+// openmp: This one and the next are tricky to parallelize, n values must follow the order to serve as tmp vector index. Could be rewritten so tmp is 2 dimensions
 //#xpragma omp parallel for schedule(static) default(none) shared(is_bright,bright,clip, y0,h,w,n,tmp) collapse(2)
-    for (int y = y0; y < h-2; y += 1)
+    for (int y = y0; y < h-(sample_size-1); y += sample_size)
     {
-        for (int x = 0; x < w; x += 1)
+        for (int x = 0; x < w-(sample_size-1); x += sample_size)
         {
             int b = bright[x + y*w];
             if (b < clip){
@@ -728,13 +729,13 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     /* also compute the range for bright pixels (used to find the slope) */
     int b_lo = kth_smallest_int(tmp, n, n*98/100);
     int b_hi = kth_smallest_int(tmp, n, n*99.9/100);
-    
+
     /* median_dark */
     n = 0;
 //#xpragma omp parallel for schedule(static) default(none) shared(dark, bright, y0,h,w,n,tmp,clip)
-    for (int y = y0; y < h-2; y += 1)
+    for (int y = y0; y < h-(sample_size-1); y += sample_size)
     {
-        for (int x = 0; x < w; x += 1)
+        for (int x = 0; x < w-(sample_size-1); x += sample_size)
         {
             int d = dark[x + y*w];
             int b = bright[x + y*w];
@@ -756,9 +757,9 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     int* hi_dark = malloc(hi_nmax * sizeof(hi_dark[0]));
     int* hi_bright = malloc(hi_nmax * sizeof(hi_bright[0]));
     
-    for (int y = y0; y < h-2; y += 1)
+    for (int y = y0; y < h-(sample_size-1); y += sample_size)
     {
-        for (int x = 0; x < w; x += 1)
+        for (int x = 0; x < w-(sample_size-1); x += sample_size)
         {
             int d = dark[x + y*w];
             int b = bright[x + y*w];
@@ -777,7 +778,7 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     double b = 0;
     
     int best_score = 0;
-    //for (double ev = 0; ev < 6; ev += 0.002)
+//    for (double ev = 0; ev < 6; ev += 0.002) {
 //This loop updates "a" and "b" when the maximum score is updated. Needs to be rewritten to make it parallelizable
 //#xpragma omp parallel for schedule(static) default(none) shared(hi_n,dmed,bmed,hi_dark,hi_bright,best_score,a,b) reduction(max : best_score)
     for (int ev_int = 0; ev_int < 6000; ev_int += 2)
