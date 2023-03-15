@@ -310,6 +310,7 @@ void applyLLRawProcObject(mlvObject_t * video, uint16_t * raw_image_buff, size_t
         if (video->llrawproc->dual_iso == 1) // Full 20bit processing mode
         {
             diso_get_full20bit(raw_info,
+                               &video->dual_iso_data,
                                raw_image_buff,
                                video->llrawproc->diso_averaging,
                                video->llrawproc->diso_alias_map,

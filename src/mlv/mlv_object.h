@@ -16,6 +16,11 @@
 #define MLV_FRAME_IS_CACHED 1
 #define MLV_FRAME_BEING_CACHED 2
 
+typedef struct  {
+    double a,b;
+    int freeze;
+} dual_iso_freeze_data_t;
+
 /* Struct of index of video and audio frames for quick access */
 typedef struct
 {
@@ -158,6 +163,7 @@ typedef struct {
     /* How many cores, will not neccesarily determine number of threads made in any case, but helps */
     int cpu_cores; /* Default 4 */
 
+    dual_iso_freeze_data_t dual_iso_data;
 
 } mlvObject_t;
 
