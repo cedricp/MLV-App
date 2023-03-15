@@ -811,7 +811,7 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     }
     
     double a = 0;
-    double bb = 0;
+    double b = 0;
 
     int best_score = 0;
     //This loop updates "a" and "b" when the maximum score is updated. Needs to be rewritten to make it parallelizable
@@ -832,7 +832,7 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
         {
             best_score = score;
             a = test_a;
-            bb = test_b;
+            b = test_b;
         }
     }
 
@@ -846,10 +846,10 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     if (iso_data->freeze){
         iso_data->freeze = 0;
         iso_data->a = a;
-        iso_data->b = bb;
+        iso_data->b = b;
     }
 
-    apply_correction(a, bb, h, w, raw_info, black20, white20, raw_buffer_32, corr_ev, white_darkened, is_bright);
+    apply_correction(a, b, h, w, raw_info, black20, white20, raw_buffer_32, corr_ev, white_darkened, is_bright);
 
     return 1;
 }
