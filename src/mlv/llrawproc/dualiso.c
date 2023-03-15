@@ -755,14 +755,14 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
      * - low percentiles are likely affected by noise (this process is essentially a histogram matching)
      * - as ad-hoc as it looks, it's the only method that passed all the test samples so far.
      */
-    int nmax = (w+2) * (h+2);// / 9;
+    int nmax = (w+2) * (h+2) / 9;
     int * tmp = malloc(nmax * sizeof(tmp[0]));
     
     /* median_bright */
     int n = 0;
-    for (int y = y0; y < h*w-2; y+=w)
+    for (int y = y0; y < h*w-2*w; y+=w*3)
     {
-        for (int x = 0; x < w; x+=1)
+        for (int x = 0; x < w; x+=3)
         {
             int b = bright[x + y];
             if (b >= clip) continue;
@@ -777,9 +777,9 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     
     /* median_dark */
     n = 0;
-    for (int y = y0; y < h*w-2; y += w)
+    for (int y = y0; y < h*w-2*w; y += w*3)
     {
-        for (int x = 0; x < w; x += 1)
+        for (int x = 0; x < w; x += 3)
         {
             int d = dark[x + y];
             int b = bright[x + y];
@@ -796,9 +796,9 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     int* hi_dark = malloc(hi_nmax * sizeof(hi_dark[0]));
     int* hi_bright = malloc(hi_nmax * sizeof(hi_bright[0]));
     
-    for (int y = y0; y < h-2; y += 1)
+    for (int y = y0; y < h-2; y += 3)
     {
-        for (int x = 0; x < w; x += 1)
+        for (int x = 0; x < w; x += 3)
         {
             int d = dark[x + y*w];
             int b = bright[x + y*w];
