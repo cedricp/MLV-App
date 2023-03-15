@@ -8510,6 +8510,16 @@ void MainWindow::toolButtonDualIsoInterpolationChanged( void )
     m_frameChanged = true;
 }
 
+void MainWindow::on_toolButtonDualIsoBakeButton_clicked(bool arg1)
+{
+    m_pMlvObject->dual_iso_data.a = -1.0;
+    m_pMlvObject->dual_iso_data.b = -1.0;
+    m_pMlvObject->dual_iso_data.freeze = 1;
+    resetMlvCache( m_pMlvObject );
+    resetMlvCachedFrame( m_pMlvObject );
+    m_frameChanged = true;
+}
+
 //DualISO Alias Map changed
 void MainWindow::toolButtonDualIsoAliasMapChanged( void )
 {

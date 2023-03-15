@@ -810,7 +810,7 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
         }
     }
     
-    double aa = 0;
+    double a = 0;
     double bb = 0;
 
     int best_score = 0;
@@ -831,7 +831,7 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
         if (score > best_score)
         {
             best_score = score;
-            aa = test_a;
+            a = test_a;
             bb = test_b;
         }
     }
@@ -845,13 +845,11 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
 
     if (iso_data->freeze){
         iso_data->freeze = 0;
-        iso_data->a = aa;
+        iso_data->a = a;
         iso_data->b = bb;
     }
 
-    printf("A:%f B:%f bmed:%d dmed:%d\n", aa, bb, bmed, dmed);
-    
-    apply_correction(aa, bb, h, w, raw_info, black20, white20, raw_buffer_32, corr_ev, white_darkened, is_bright);
+    apply_correction(a, bb, h, w, raw_info, black20, white20, raw_buffer_32, corr_ev, white_darkened, is_bright);
 
     return 1;
 }

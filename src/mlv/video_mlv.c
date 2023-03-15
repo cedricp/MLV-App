@@ -533,7 +533,7 @@ mlvObject_t * initMlvObject()
 
     video->dual_iso_data.a = -1.0f;
     video->dual_iso_data.a = -1.0f;
-    video->dual_iso_data.freeze = 1;
+    video->dual_iso_data.freeze = 0;
 
     /* Will avoid main file conflicts with audio and stuff */
     pthread_mutex_init(&video->g_mutexFind, NULL);

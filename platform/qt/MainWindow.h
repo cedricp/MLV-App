@@ -343,6 +343,7 @@ private slots:
     void on_groupBoxVignette_toggled(bool arg1);
     void on_groupBoxLinearGradient_toggled(bool arg1);
     void on_groupBoxTransformation_toggled(bool arg1);
+    void on_toolButtonDualIsoBakeButton_clicked(bool arg1);
     void exportAbort( void );
     void drawFrameReady( void );
 
