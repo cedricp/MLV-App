@@ -531,6 +531,10 @@ mlvObject_t * initMlvObject()
     /* Path (so separate cache threads can have their own FILE*s) */
     video->path = NULL;
 
+    video->dual_iso_data.a = -1.0f;
+    video->dual_iso_data.b = -1.0f;
+    video->dual_iso_data.freeze = 0;
+
     /* Will avoid main file conflicts with audio and stuff */
     pthread_mutex_init(&video->g_mutexFind, NULL);
     pthread_mutex_init(&video->g_mutexCount, NULL);

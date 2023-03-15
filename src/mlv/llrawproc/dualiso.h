@@ -24,8 +24,11 @@
 
 #include <sys/types.h>
 #include "../raw.h"
+#include "../mlv_object.h"
 
 int diso_get_preview(uint16_t * image_data, uint16_t width, uint16_t height, int32_t black, int32_t white, int diso_check);
-int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int interp_method, int use_alias_map, int use_fullres, int chroma_smooth_method, int fix_vertical_stripes, int use_horizontal_stripe_fix, int fix_bad_pixels_dual, int bad_pixels_search_method, int dark_highlight_threshold);
+int diso_get_full20bit(struct raw_info raw_info,dual_iso_freeze_data_t* iso_data, uint16_t * image_data, int interp_method, int use_alias_map, int use_fullres, 
+int chroma_smooth_method, int fix_vertical_stripes, int use_horizontal_stripe_fix, int fix_bad_pixels_dual, int bad_pixels_search_method, 
+int dark_highlight_threshold);
 
 #endif

@@ -652,166 +652,8 @@ static int identify_bright_and_dark_fields(struct raw_info raw_info, uint16_t * 
     return 1;
 }
 
-static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, double * corr_ev, int * white_darkened, int * is_bright)
+static void apply_correction(double a, double b, int h, int w, struct raw_info raw_info, int black20, int white20, uint32_t* raw_buffer_32, double * corr_ev, int * white_darkened, int * is_bright)
 {
-    /* guess ISO - find the factor and the offset for matching the bright and dark images */
-    int black20 = raw_info.black_level;
-    int white20 = MIN(raw_info.white_level, *white_darkened);
-    int black = black20/16;
-    int white = white20/16;
-    int clip0 = white - black;
-    int clip  = clip0 * 0.95;    /* there may be nonlinear response in very bright areas */
-    
-    int w = raw_info.width;
-    int h = raw_info.height;
-    int y0 = raw_info.active_area.y1 + 2;
-    
-    /* quick interpolation for matching */
-    int* dark   = malloc(w * h * sizeof(dark[0]));
-    int* bright = malloc(w * h * sizeof(bright[0]));
-    memset(dark, 0, w * h * sizeof(dark[0]));
-    memset(bright, 0, w * h * sizeof(bright[0]));
-    
-#pragma omp parallel for schedule(static) default(none) shared(raw_info, raw_buffer_32, is_bright, y0,h,w,black,dark,bright,clip,clip0)
-    for (int y = y0; y < h-2; y += 3)
-    {
-        int* native = BRIGHT_ROW ? bright : dark;
-        int* interp = BRIGHT_ROW ? dark : bright;
-
-        for (int x = 0; x < w; x += 3)
-        {
-            int pa = raw_get_pixel_20to16(x, y-2) - black;
-            int pb = raw_get_pixel_20to16(x, y+2) - black;
-            int pn = raw_get_pixel_20to16(x, y) - black;
-            int pi = (pa + pb + 1) / 2;
-            if (pa >= clip || pb >= clip) pi = clip0;               /* pixel too bright? discard */
-            if (pi >= clip) pn = clip0;                             /* interpolated pixel not good? discard the other one too */
-            interp[x + y * w] = pi;
-            native[x + y * w] = pn;
-        }
-    }
-    
-    /*
-     * Robust line fit (match unclipped data):
-     * - use (median_bright, median_dark) as origin
-     * - select highlights between 98 and 99.9th percentile to find the slope (ISO)
-     * - choose the slope that explains the largest number of highlight points (inspired from RANSAC)
-     *
-     * Rationale:
-     * - exposure matching is important to be correct in bright_highlights (which are combined with dark_midtones)
-     * - low percentiles are likely affected by noise (this process is essentially a histogram matching)
-     * - as ad-hoc as it looks, it's the only method that passed all the test samples so far.
-     */
-    static const int sample_size = 3;
-    int nmax = (w+(sample_size-1)) * (h+(sample_size-1)) / (sample_size*sample_size);   /* downsample by 3x3 for speed */
-    int * tmp = malloc(nmax * sizeof(tmp[0]));
-    
-    /* median_bright */
-    int n = 0;
-
-// openmp: This one and the next are tricky to parallelize, n values must follow the order to serve as tmp vector index. Could be rewritten so tmp is 2 dimensions
-//#xpragma omp parallel for schedule(static) default(none) shared(is_bright,bright,clip, y0,h,w,n,tmp) collapse(2)
-    for (int y = y0; y < h-(sample_size-1); y += sample_size)
-    {
-        for (int x = 0; x < w-(sample_size-1); x += sample_size)
-        {
-            int b = bright[x + y*w];
-            if (b < clip){
-                n++;
-                tmp[n] = b;
-            };
-        }
-    }
-    int bmed = median_int_wirth(tmp, n);
-    
-    int * bps = 0;
-    
-    /* also compute the range for bright pixels (used to find the slope) */
-    int b_lo = kth_smallest_int(tmp, n, n*98/100);
-    int b_hi = kth_smallest_int(tmp, n, n*99.9/100);
-
-    /* median_dark */
-    n = 0;
-//#xpragma omp parallel for schedule(static) default(none) shared(dark, bright, y0,h,w,n,tmp,clip)
-    for (int y = y0; y < h-(sample_size-1); y += sample_size)
-    {
-        for (int x = 0; x < w-(sample_size-1); x += sample_size)
-        {
-            int d = dark[x + y*w];
-            int b = bright[x + y*w];
-            if (b < clip) {
-                //#pragma omp atomic
-                n++;
-                tmp[n] = d;
-            }
-        }
-    }
-    int dmed = median_int_wirth(tmp, n);
-    
-    int * dps = 0;
-    
-    /* select highlights used to find the slope (ISO) */
-    /* (98th percentile => up to 2% highlights) */
-    int hi_nmax = nmax/50;
-    int hi_n = 0;
-    int* hi_dark = malloc(hi_nmax * sizeof(hi_dark[0]));
-    int* hi_bright = malloc(hi_nmax * sizeof(hi_bright[0]));
-    
-    for (int y = y0; y < h-(sample_size-1); y += sample_size)
-    {
-        for (int x = 0; x < w-(sample_size-1); x += sample_size)
-        {
-            int d = dark[x + y*w];
-            int b = bright[x + y*w];
-            if (b >= b_hi) continue;
-            if (b <= b_lo) continue;
-            hi_dark[hi_n] = d;
-            hi_bright[hi_n] = b;
-            hi_n++;
-            if (hi_n >= hi_nmax) break;
-        }
-    }
-    
-    //~ printf("Selected %d highlight points (max %d)\n", hi_n, hi_nmax);
-    
-    double a = 0;
-    double b = 0;
-    
-    int best_score = 0;
-//    for (double ev = 0; ev < 6; ev += 0.002) {
-//This loop updates "a" and "b" when the maximum score is updated. Needs to be rewritten to make it parallelizable
-//#xpragma omp parallel for schedule(static) default(none) shared(hi_n,dmed,bmed,hi_dark,hi_bright,best_score,a,b) reduction(max : best_score)
-    for (int ev_int = 0; ev_int < 6000; ev_int += 2)
-    {
-        double ev = ev_int*0.001;
-        double test_a = pow(2, -ev);
-        double test_b = dmed - bmed * test_a;
-        
-        int score = 0;
-        for (int i = 0; i < hi_n; i++)
-        {
-            int d = hi_dark[i];
-            int b = hi_bright[i];
-            int e = d - (b*test_a + test_b);
-            if (ABS(e) < 50) score++;
-        }
-        if (score > best_score)
-        {
-            best_score = score;
-            a = test_a;
-            b = test_b;
-            //~ printf("%f: %d\n", a, score);
-        }
-    }
-    free(hi_dark); hi_dark = 0;
-    free(hi_bright); hi_bright = 0;
-    free(tmp); tmp = 0;
-    
-    free(dark);
-    free(bright);
-    if (dps) free(dps);
-    if (bps) free(bps);
-    
     /* apply the correction */
     double b20 = b * 16;
 #pragma omp parallel for schedule(static) default(none) shared(black20, is_bright, h, w, b20, raw_buffer_32, raw_info, a) collapse(2)
@@ -855,6 +697,160 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     printf("ISO difference  : %.2f EV (%d)\n", log2(factor), (int)round(factor*100));
     printf("Black delta     : %.2f\n", b/4); /* we want to display black delta for the 14-bit original data, but we have computed it from 16-bit data */
 #endif
+}
+
+static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, double * corr_ev,
+                           int * white_darkened, int * is_bright, dual_iso_freeze_data_t* iso_data)
+{
+    /* guess ISO - find the factor and the offset for matching the bright and dark images */
+    int black20 = raw_info.black_level;
+    int white20 = MIN(raw_info.white_level, *white_darkened);
+    int black = black20/16;
+    int white = white20/16;
+    int clip0 = white - black;
+    int clip  = clip0 * 0.95;    /* there may be nonlinear response in very bright areas */
+    
+    int w = raw_info.width;
+    int h = raw_info.height;
+    int y0 = raw_info.active_area.y1 + 2;
+
+    if (iso_data->a > 0.0 && iso_data->b > 0.0){
+        apply_correction(iso_data->a, iso_data->b, h, w, raw_info, black20, white20, raw_buffer_32, corr_ev, white_darkened, is_bright);
+        return 1;
+    }
+
+    /* quick interpolation for matching */
+    int* dark   = malloc(w * h * sizeof(dark[0]));
+    int* bright = malloc(w * h * sizeof(bright[0]));
+    memset(dark, 0, w * h * sizeof(dark[0]));
+    memset(bright, 0, w * h * sizeof(bright[0]));
+    
+#pragma omp parallel for schedule(static) default(none) shared(raw_info, raw_buffer_32, is_bright, y0,h,w,black,dark,bright,clip,clip0)
+    for (int y = y0; y < h-2; y += 1)
+    {
+        int* native = BRIGHT_ROW ? bright : dark;
+        int* interp = BRIGHT_ROW ? dark : bright;
+
+        for (int x = 0; x < w; x += 1)
+        {
+            int pa = raw_get_pixel_20to16(x, y-2) - black;
+            int pb = raw_get_pixel_20to16(x, y+2) - black;
+            int pn = raw_get_pixel_20to16(x, y) - black;
+            int pi = (pa + pb + 1) / 2;
+            if (pa >= clip || pb >= clip) pi = clip0;               /* pixel too bright? discard */
+            if (pi >= clip) pn = clip0;                             /* interpolated pixel not good? discard the other one too */
+            interp[x + y * w] = pi;
+            native[x + y * w] = pn;
+        }
+    }
+    
+    /*
+     * Robust line fit (match unclipped data):
+     * - use (median_bright, median_dark) as origin
+     * - select highlights between 98 and 99.9th percentile to find the slope (ISO)
+     * - choose the slope that explains the largest number of highlight points (inspired from RANSAC)
+     *
+     * Rationale:
+     * - exposure matching is important to be correct in bright_highlights (which are combined with dark_midtones)
+     * - low percentiles are likely affected by noise (this process is essentially a histogram matching)
+     * - as ad-hoc as it looks, it's the only method that passed all the test samples so far.
+     */
+    int nmax = (w+2) * (h+2);// / 9;
+    int * tmp = malloc(nmax * sizeof(tmp[0]));
+    
+    /* median_bright */
+    int n = 0;
+    for (int y = y0; y < h*w-2; y+=w)
+    {
+        for (int x = 0; x < w; x+=1)
+        {
+            int b = bright[x + y];
+            if (b >= clip) continue;
+            tmp[n++] = b;
+        }
+    }
+    int bmed = median_int_wirth(tmp, n);
+    
+    /* also compute the range for bright pixels (used to find the slope) */
+    int b_lo = kth_smallest_int(tmp, n, n*98/100);
+    int b_hi = kth_smallest_int(tmp, n, n*99.9/100);
+    
+    /* median_dark */
+    n = 0;
+    for (int y = y0; y < h*w-2; y += w)
+    {
+        for (int x = 0; x < w; x += 1)
+        {
+            int d = dark[x + y];
+            int b = bright[x + y];
+            if (b >= clip) continue;
+            tmp[n++] = d;
+        }
+    }
+    int dmed = median_int_wirth(tmp, n);
+    
+    /* select highlights used to find the slope (ISO) */
+    /* (98th percentile => up to 2% highlights) */
+    int hi_nmax = nmax/50;
+    int hi_n = 0;
+    int* hi_dark = malloc(hi_nmax * sizeof(hi_dark[0]));
+    int* hi_bright = malloc(hi_nmax * sizeof(hi_bright[0]));
+    
+    for (int y = y0; y < h-2; y += 1)
+    {
+        for (int x = 0; x < w; x += 1)
+        {
+            int d = dark[x + y*w];
+            int b = bright[x + y*w];
+            if (b >= b_hi) continue;
+            if (b <= b_lo) continue;
+            hi_dark[hi_n] = d;
+            hi_bright[hi_n] = b;
+            if (++hi_n >= hi_nmax) break;
+        }
+    }
+    
+    double a = 0;
+    double b = 0;
+
+    int best_score = 0;
+    //This loop updates "a" and "b" when the maximum score is updated. Needs to be rewritten to make it parallelizable
+    for (double ev = 0; ev < 6; ev += 0.002)
+    {
+        double test_a = pow(2, -ev);
+        double test_b = dmed - bmed * test_a;
+        
+        int score = 0;
+        for (int i = 0; i < hi_n; i++)
+        {
+            int d = hi_dark[i];
+            int b = hi_bright[i];
+            int e = d - (b*test_a + test_b);
+            if (ABS(e) < 50) score++;
+        }
+        if (score > best_score)
+        {
+            best_score = score;
+            a = test_a;
+            b = test_b;
+        }
+    }
+
+    free(hi_dark); hi_dark = 0;
+    free(hi_bright); hi_bright = 0;
+    free(tmp); tmp = 0;
+    
+    free(dark);
+    free(bright);
+
+    if (iso_data->freeze){
+        iso_data->freeze = 0;
+        iso_data->a = a;
+        iso_data->b = b;
+    }
+    
+    apply_correction(a, b, h, w, raw_info, black20, white20, raw_buffer_32, corr_ev, white_darkened, is_bright);
+
     return 1;
 }
 
@@ -2531,7 +2527,9 @@ static void find_and_fix_bad_pixels(struct raw_info raw_info, uint32_t * raw_buf
 //    return round(raw_adjusted + fast_randn05());
 //}
 
-int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int interp_method, int use_alias_map, int use_fullres, int chroma_smooth_method, int vertical_stripes_fix, int use_horizontal_stripe_fix, int fix_bad_pixels_dual, int bad_pixels_search_method, int dark_highlight_threshold)
+int diso_get_full20bit(struct raw_info raw_info,dual_iso_freeze_data_t* iso_data, uint16_t * image_data, int interp_method, int use_alias_map, int use_fullres, 
+    int chroma_smooth_method, int vertical_stripes_fix, int use_horizontal_stripe_fix, int fix_bad_pixels_dual, int bad_pixels_search_method, 
+    int dark_highlight_threshold)
 {
     int w = raw_info.width;
     int h = raw_info.height;
@@ -2684,7 +2682,7 @@ int diso_get_full20bit(struct raw_info raw_info, uint16_t * image_data, int inte
     perf_clock = clock();
 #endif
 
-    int expo_matched = match_exposures(raw_info, raw_buffer_32, &corr_ev, &white_darkened, is_bright);
+    int expo_matched = match_exposures(raw_info, raw_buffer_32, &corr_ev, &white_darkened, is_bright, iso_data);
 
 #ifdef PERF_INFO
     perf_clock = clock()-perf_clock;
