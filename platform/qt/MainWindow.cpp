@@ -8545,9 +8545,16 @@ void MainWindow::toolButtonDualIsoChanged( void )
         ui->labelDualIsoHorizontalStripesFix->setEnabled( true );
         ui->label_DualISODarkHighlightThreshold->setEnabled( true );
         ui->label_DarkHighlightThresholdVal->setEnabled( true );
+        ui->toolButtonDualIsoBake->setEnabled( true );
     }
-    else
+    else 
     {
+        if ( ( toolButtonDualIsoCurrentIndex() == 2 ) && ui->checkBoxRawFixEnable->isChecked() )
+        {
+            ui->toolButtonDualIsoBake->setEnabled( true );
+        } else {
+            ui->toolButtonDualIsoBake->setEnabled( false );
+        }
         ui->DualISOFullresBlendingLabel->setEnabled( false );
         ui->toolButtonDualIsoInterpolation->setEnabled( false );
         ui->toolButtonDualIsoAliasMap->setEnabled( false );
@@ -8559,7 +8566,12 @@ void MainWindow::toolButtonDualIsoChanged( void )
         ui->labelDualIsoHorizontalStripesFix->setEnabled( false );
         ui->label_DualISODarkHighlightThreshold->setEnabled( false );
         ui->label_DarkHighlightThresholdVal->setEnabled( false );
+        
     }
+
+    // Clear bake if mode changed
+    m_pMlvObject->dual_iso_data.a = -1.0;
+    m_pMlvObject->dual_iso_data.b = -1.0;
 
     //Set dualIso mode
     llrpSetDualIsoMode( m_pMlvObject, toolButtonDualIsoCurrentIndex() );

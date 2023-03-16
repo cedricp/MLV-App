@@ -44,7 +44,7 @@ typedef struct {
 
 typedef struct  {
     double a,b;
-    int freeze;
+    int freeze, dark_row_start;
 } dual_iso_freeze_data_t;
 
 /* Struct for MLV handling */

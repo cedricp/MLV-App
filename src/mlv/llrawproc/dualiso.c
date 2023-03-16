@@ -50,163 +50,178 @@ clock_t perf_clock, perf_sub_clock;
 #endif
 
 //this is just meant to be fast
-int diso_get_preview(uint16_t * image_data, uint16_t width, uint16_t height, int32_t black, int32_t white, int diso_check)
+int diso_get_preview(uint16_t * image_data,dual_iso_freeze_data_t* iso_data, uint16_t width, uint16_t height, int32_t black, int32_t white, int diso_check)
 {
-    //compute the median of the green channel for each multiple of 4 rows
-    uint16_t median[4];
-    struct histogram * hist[4];
-    struct histogram * hist_hi = NULL;
-    struct histogram * hist_lo = NULL;
-    
-    for(int i = 0; i < 4; i++)
-        hist[i] = hist_create(white);
-
-    for(uint16_t y = 4; y < height - 4; y += 5)
-    {
-        hist_add(hist[y % 4], &(image_data[y * width + (y + 1) % 2]), width - (y + 1) % 2, 3);
-    }
-    
-    for(int i = 0; i < 4; i++)
-    {
-        median[i] = hist_median(hist[i]);
-    }
-    
+    double a,b;
     uint16_t dark_row_start = -1;
-    if((median[2] - black) > ((median[0] - black) * 2) &&
-       (median[2] - black) > ((median[1] - black) * 2) &&
-       (median[3] - black) > ((median[0] - black) * 2) &&
-       (median[3] - black) > ((median[1] - black) * 2))
-    {
-        dark_row_start = 0;
-        hist_lo = hist[0];
-        hist_hi = hist[2];
-    }
-    else if((median[0] - black) > ((median[1] - black) * 2) &&
-            (median[0] - black) > ((median[2] - black) * 2) &&
-            (median[3] - black) > ((median[1] - black) * 2) &&
-            (median[3] - black) > ((median[2] - black) * 2))
-    {
-        dark_row_start = 1;
-        hist_lo = hist[1];
-        hist_hi = hist[0];
-    }
-    else if((median[0] - black) > ((median[2] - black) * 2) &&
-            (median[0] - black) > ((median[3] - black) * 2) &&
-            (median[1] - black) > ((median[2] - black) * 2) &&
-            (median[1] - black) > ((median[3] - black) * 2))
-    {
-        dark_row_start = 2;
-        hist_lo = hist[2];
-        hist_hi = hist[0];
-    }
-    else if((median[1] - black) > ((median[0] - black) * 2) &&
-            (median[1] - black) > ((median[3] - black) * 2) &&
-            (median[2] - black) > ((median[0] - black) * 2) &&
-            (median[2] - black) > ((median[3] - black) * 2))
-    {
-        dark_row_start = 3;
-        hist_lo = hist[0];
-        hist_hi = hist[2];
-    }
-    else
-    {
-#ifndef STDOUT_SILENT
-        err_printf("\nCould not detect dual ISO interlaced lines\n");
-#endif
 
+    if (iso_data->a < 0.0 && iso_data->b < 0.0){
+        //compute the median of the green channel for each multiple of 4 rows
+        uint16_t median[4];
+        struct histogram * hist[4];
+        struct histogram * hist_hi = NULL;
+        struct histogram * hist_lo = NULL;
+        
+        for(int i = 0; i < 4; i++)
+            hist[i] = hist_create(white);
+
+        for(uint16_t y = 4; y < height - 4; y += 5)
+        {
+            hist_add(hist[y % 4], &(image_data[y * width + (y + 1) % 2]), width - (y + 1) % 2, 3);
+        }
+        
         for(int i = 0; i < 4; i++)
         {
-            hist_destroy(hist[i]);
+            median[i] = hist_median(hist[i]);
         }
-        return 0;
-    }
-    
-    if(diso_check)
-    {
-#ifndef STDOUT_SILENT
-        err_printf("\nDetected dual ISO interlaced lines\n");
-#endif
+        
+        if((median[2] - black) > ((median[0] - black) * 2) &&
+        (median[2] - black) > ((median[1] - black) * 2) &&
+        (median[3] - black) > ((median[0] - black) * 2) &&
+        (median[3] - black) > ((median[1] - black) * 2))
+        {
+            dark_row_start = 0;
+            hist_lo = hist[0];
+            hist_hi = hist[2];
+        }
+        else if((median[0] - black) > ((median[1] - black) * 2) &&
+                (median[0] - black) > ((median[2] - black) * 2) &&
+                (median[3] - black) > ((median[1] - black) * 2) &&
+                (median[3] - black) > ((median[2] - black) * 2))
+        {
+            dark_row_start = 1;
+            hist_lo = hist[1];
+            hist_hi = hist[0];
+        }
+        else if((median[0] - black) > ((median[2] - black) * 2) &&
+                (median[0] - black) > ((median[3] - black) * 2) &&
+                (median[1] - black) > ((median[2] - black) * 2) &&
+                (median[1] - black) > ((median[3] - black) * 2))
+        {
+            dark_row_start = 2;
+            hist_lo = hist[2];
+            hist_hi = hist[0];
+        }
+        else if((median[1] - black) > ((median[0] - black) * 2) &&
+                (median[1] - black) > ((median[3] - black) * 2) &&
+                (median[2] - black) > ((median[0] - black) * 2) &&
+                (median[2] - black) > ((median[3] - black) * 2))
+        {
+            dark_row_start = 3;
+            hist_lo = hist[0];
+            hist_hi = hist[2];
+        }
+        else
+        {
+    #ifndef STDOUT_SILENT
+            err_printf("\nCould not detect dual ISO interlaced lines\n");
+    #endif
 
-        for(int i = 0; i < 4; i++)
-        {
-            hist_destroy(hist[i]);
-        }
-        return 1;
-    }
-
-    /* compare the two histograms and plot the curve between the two exposures (dark as a function of bright) */
-    const int min_pix = 100;                                /* extract a data point every N image pixels */
-    int data_size = (width * height / min_pix + 1);                  /* max number of data points */
-    int* data_x = (int *)malloc(data_size * sizeof(data_x[0]));
-    int* data_y = (int *)malloc(data_size * sizeof(data_y[0]));
-    double* data_w = (double *)malloc(data_size * sizeof(data_w[0]));
-    int data_num = 0;
-    
-    int acc_lo = 0;
-    int acc_hi = 0;
-    int raw_lo = 0;
-    int raw_hi = 0;
-    int prev_acc_hi = 0;
-    
-    int hist_total = hist[0]->count;
-    
-    for (raw_hi = 0; raw_hi < hist_total; raw_hi++)
-    {
-        acc_hi += hist_hi->data[raw_hi];
-        
-        while (acc_lo < acc_hi)
-        {
-            acc_lo += hist_lo->data[raw_lo];
-            raw_lo++;
-        }
-        
-        if (raw_lo >= white)
-            break;
-        
-        if (acc_hi - prev_acc_hi > min_pix)
-        {
-            if (acc_hi > hist_total * 1 / 100 && acc_hi < hist_total * 99.99 / 100)    /* throw away outliers */
+            for(int i = 0; i < 4; i++)
             {
-                data_x[data_num] = raw_hi - black;
-                data_y[data_num] = raw_lo - black;
-                data_w[data_num] = (MAX(0, raw_hi - black + 100));    /* points from higher brightness are cleaner */
-                data_num++;
-                prev_acc_hi = acc_hi;
+                hist_destroy(hist[i]);
+            }
+            return 0;
+        }
+        
+        if(diso_check)
+        {
+    #ifndef STDOUT_SILENT
+            err_printf("\nDetected dual ISO interlaced lines\n");
+    #endif
+
+            for(int i = 0; i < 4; i++)
+            {
+                hist_destroy(hist[i]);
+            }
+            return 1;
+        }
+
+        /* compare the two histograms and plot the curve between the two exposures (dark as a function of bright) */
+        const int min_pix = 100;                                /* extract a data point every N image pixels */
+        int data_size = (width * height / min_pix + 1);                  /* max number of data points */
+        int* data_x = (int *)malloc(data_size * sizeof(data_x[0]));
+        int* data_y = (int *)malloc(data_size * sizeof(data_y[0]));
+        double* data_w = (double *)malloc(data_size * sizeof(data_w[0]));
+        int data_num = 0;
+        
+        int acc_lo = 0;
+        int acc_hi = 0;
+        int raw_lo = 0;
+        int raw_hi = 0;
+        int prev_acc_hi = 0;
+        
+        int hist_total = hist[0]->count;
+        
+        for (raw_hi = 0; raw_hi < hist_total; raw_hi++)
+        {
+            acc_hi += hist_hi->data[raw_hi];
+            
+            while (acc_lo < acc_hi)
+            {
+                acc_lo += hist_lo->data[raw_lo];
+                raw_lo++;
+            }
+            
+            if (raw_lo >= white)
+                break;
+            
+            if (acc_hi - prev_acc_hi > min_pix)
+            {
+                if (acc_hi > hist_total * 1 / 100 && acc_hi < hist_total * 99.99 / 100)    /* throw away outliers */
+                {
+                    data_x[data_num] = raw_hi - black;
+                    data_y[data_num] = raw_lo - black;
+                    data_w[data_num] = (MAX(0, raw_hi - black + 100));    /* points from higher brightness are cleaner */
+                    data_num++;
+                    prev_acc_hi = acc_hi;
+                }
             }
         }
-    }
-    
-    /**
-     * plain least squares
-     * y = ax + b
-     * a = (mean(xy) - mean(x)mean(y)) / (mean(x^2) - mean(x)^2)
-     * b = mean(y) - a mean(x)
-     */
-    
-    double mx = 0, my = 0, mxy = 0, mx2 = 0;
-    double weight = 0;
-    for (int i = 0; i < data_num; i++)
-    {
-        mx += data_x[i] * data_w[i];
-        my += data_y[i] * data_w[i];
-        mxy += (double)data_x[i] * data_y[i] * data_w[i];
-        mx2 += (double)data_x[i] * data_x[i] * data_w[i];
-        weight += data_w[i];
-    }
-    mx /= weight;
-    my /= weight;
-    mxy /= weight;
-    mx2 /= weight;
-    double a = (mxy - mx*my) / (mx2 - mx*mx);
-    double b = my - a * mx;
-    
-    free(data_w);
-    free(data_y);
-    free(data_x);
+        
+        /**
+         * plain least squares
+         * y = ax + b
+         * a = (mean(xy) - mean(x)mean(y)) / (mean(x^2) - mean(x)^2)
+         * b = mean(y) - a mean(x)
+         */
+        
+        double mx = 0, my = 0, mxy = 0, mx2 = 0;
+        double weight = 0;
+        for (int i = 0; i < data_num; i++)
+        {
+            mx += data_x[i] * data_w[i];
+            my += data_y[i] * data_w[i];
+            mxy += (double)data_x[i] * data_y[i] * data_w[i];
+            mx2 += (double)data_x[i] * data_x[i] * data_w[i];
+            weight += data_w[i];
+        }
+        mx /= weight;
+        my /= weight;
+        mxy /= weight;
+        mx2 /= weight;
+        a = (mxy - mx*my) / (mx2 - mx*mx);
+        b = my - a * mx;
+        
+        free(data_w);
+        free(data_y);
+        free(data_x);
 
-    for(int i = 0; i < 4; i++)
-    {
-        hist_destroy(hist[i]);
+        for(int i = 0; i < 4; i++)
+        {
+            hist_destroy(hist[i]);
+        }
+    } else {
+        a = iso_data->a;
+        b = iso_data->b;
+        dark_row_start = iso_data->dark_row_start;
+    }
+
+    if (iso_data->freeze){
+        iso_data->freeze = 0;
+        iso_data->a = a;
+        iso_data->b = b;
+        iso_data->dark_row_start = dark_row_start;
     }
     
     //TODO: what's a better way to pick a value for this?
@@ -726,12 +741,12 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     memset(bright, 0, w * h * sizeof(bright[0]));
     
 #pragma omp parallel for schedule(static) default(none) shared(raw_info, raw_buffer_32, is_bright, y0,h,w,black,dark,bright,clip,clip0)
-    for (int y = y0; y < h-2; y += 1)
+    for (int y = y0; y < h-2; y += 3)
     {
         int* native = BRIGHT_ROW ? bright : dark;
         int* interp = BRIGHT_ROW ? dark : bright;
 
-        for (int x = 0; x < w; x += 1)
+        for (int x = 0; x < w; x += 3)
         {
             int pa = raw_get_pixel_20to16(x, y-2) - black;
             int pb = raw_get_pixel_20to16(x, y+2) - black;
