@@ -55,7 +55,7 @@ int diso_get_preview(uint16_t * image_data,dual_iso_freeze_data_t* iso_data, uin
     double a,b;
     uint16_t dark_row_start = -1;
 
-    if (iso_data->a < 0.0 && iso_data->b < 0.0){
+    if (iso_data->freeze < 2){
         //compute the median of the green channel for each multiple of 4 rows
         uint16_t median[4];
         struct histogram * hist[4];
@@ -217,8 +217,8 @@ int diso_get_preview(uint16_t * image_data,dual_iso_freeze_data_t* iso_data, uin
         dark_row_start = iso_data->dark_row_start;
     }
 
-    if (iso_data->freeze){
-        iso_data->freeze = 0;
+    if (iso_data->freeze == 1){
+        iso_data->freeze = 2;
         iso_data->a = a;
         iso_data->b = b;
         iso_data->dark_row_start = dark_row_start;
@@ -729,7 +729,7 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     int h = raw_info.height;
     int y0 = raw_info.active_area.y1 + 2;
 
-    if (iso_data->a > 0.0 && iso_data->b > 0.0){
+    if (iso_data->freeze == 2){
         apply_correction(iso_data->a, iso_data->b, h, w, raw_info, black20, white20, raw_buffer_32, corr_ev, white_darkened, is_bright);
         return 1;
     }
@@ -858,8 +858,8 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     free(dark);
     free(bright);
 
-    if (iso_data->freeze){
-        iso_data->freeze = 0;
+    if (iso_data->freeze == 1){
+        iso_data->freeze = 2;
         iso_data->a = a;
         iso_data->b = b;
     }

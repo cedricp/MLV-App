@@ -4504,6 +4504,15 @@ void MainWindow::setSliders(ReceiptSettings *receipt, bool paste)
     setToolButtonDualIsoFullresBlending( receipt->dualIsoFrBlending() );
     setToolButtonDualIsoHorizontalStripesFix( receipt->dualIsoHorizontalStripes() );
     on_horizontalSliderDualIsoDarkHighlightThreshold_valueChanged( receipt->dualIsoDhThreshold() );
+    double a,b;
+    int dark;
+    bool dualiso_expo_enabled;
+    receipt->dualiso_expo(a, b, dark, dualiso_expo_enabled);
+    ui->toolButtonDualIsoBake->setChecked( dualiso_expo_enabled );
+    m_pMlvObject->dual_iso_data.a = a;
+    m_pMlvObject->dual_iso_data.b = b;
+    m_pMlvObject->dual_iso_data.dark_row_start = dark;
+    m_pMlvObject->dual_iso_data.freeze = 2;
     ui->horizontalSliderDualIsoDarkHighlightThreshold->setValue( receipt->dualIsoDhThreshold() );
     ui->spinBoxDeflickerTarget->setValue( receipt->deflickerTarget() );
     on_spinBoxDeflickerTarget_valueChanged( receipt->deflickerTarget() );
@@ -4739,6 +4748,8 @@ void MainWindow::setReceipt( ReceiptSettings *receipt )
     receipt->setVidstabZoom( ui->horizontalSliderVidstabZoom->value() );
     receipt->setVidstabSmoothing( ui->horizontalSliderVidstabSmoothing->value() );
     receipt->setVidstabTripod( ui->checkBoxVidstabTripod->isChecked() );
+
+    receipt->setDualIsoExpoValues( m_pMlvObject->dual_iso_data.a, m_pMlvObject->dual_iso_data.b, m_pMlvObject->dual_iso_data.dark_row_start, ui->toolButtonDualIsoBake->isChecked() );
 }
 
 //Replace receipt settings
@@ -8561,13 +8572,13 @@ void MainWindow::toolButtonDualIsoChanged( void )
         ui->labelDualIsoHorizontalStripesFix->setEnabled( false );
         ui->label_DualISODarkHighlightThreshold->setEnabled( false );
         ui->label_DarkHighlightThresholdVal->setEnabled( false );
-        
     }
 
     ui->toolButtonDualIsoBake->setChecked( false );
     // Clear bake if mode changed
-    m_pMlvObject->dual_iso_data.a = -1.0;
-    m_pMlvObject->dual_iso_data.b = -1.0;
+    m_pMlvObject->dual_iso_data.a = 0.0;
+    m_pMlvObject->dual_iso_data.b = 0.0;
+    m_pMlvObject->dual_iso_data.freeze = 0;
 
     //Set dualIso mode
     llrpSetDualIsoMode( m_pMlvObject, toolButtonDualIsoCurrentIndex() );
@@ -8582,11 +8593,9 @@ void MainWindow::toolButtonDualIsoChanged( void )
 
 void MainWindow::on_toolButtonDualIsoBake_clicked(bool checked)
 {
-    m_pMlvObject->dual_iso_data.a = -1.0;
-    m_pMlvObject->dual_iso_data.b = -1.0;
-    if (checked){
-        m_pMlvObject->dual_iso_data.freeze = 1;
-    }
+    m_pMlvObject->dual_iso_data.a = 0.0;
+    m_pMlvObject->dual_iso_data.b = 0.0;
+    m_pMlvObject->dual_iso_data.freeze = checked ? 1 : 0;
     resetMlvCache( m_pMlvObject );
     resetMlvCachedFrame( m_pMlvObject );
     m_frameChanged = true;

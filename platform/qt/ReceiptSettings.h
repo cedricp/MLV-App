@@ -93,6 +93,7 @@ public:
     void setDualIsoBlack( uint32_t level )    {m_dualIsoBlack = level;}
     void setDualIsoDhThreshold( int value )   {m_dualIsoDhThreshold = value;}
     void setDualIsoHorizontalStripes( int on ){m_dualIsoHorizontalStripes = on;}
+    void setDualIsoExpoValues( double a, double b, int dark, bool enabled ) { m_dualiso_expo_a = a;m_dualiso_expo_b = b; m_dualiso_expo_dark = dark; m_dualiso_expo_fix_enable = enabled; }
     void setDarkFrameEnabled( int on )        {m_darkFrameSubtractionMode = on;}
     void setDarkFrameFileName( QString name ) {m_darkFrameSubtractionName = name;}
     void setStretchFactorX( double factor )   {m_stretchFactorX = factor;}
@@ -231,6 +232,7 @@ public:
     uint32_t lastPlaybackPosition( void ){return m_lastPlaybackPosition;}
     uint8_t debayer( void ){return m_debayer;}
     uint8_t mark( void ){return m_mark;}
+    void dualiso_expo( double &a, double&b, int& dark, bool &enabled ){a = m_dualiso_expo_a;b = m_dualiso_expo_b; dark = m_dualiso_expo_dark; enabled = m_dualiso_expo_fix_enable;}
 
 private:
     bool m_neverLoaded;
@@ -341,6 +343,9 @@ private:
     uint32_t m_lastPlaybackPosition;
     uint8_t m_debayer;
     uint8_t m_mark;
+    double m_dualiso_expo_a, m_dualiso_expo_b;
+    int m_dualiso_expo_dark;
+    bool m_dualiso_expo_fix_enable;
 };
 
 #endif // RECEIPTSETTINGS_H
