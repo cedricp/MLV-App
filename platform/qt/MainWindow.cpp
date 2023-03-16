@@ -8549,12 +8549,7 @@ void MainWindow::toolButtonDualIsoChanged( void )
     }
     else 
     {
-        if ( ( toolButtonDualIsoCurrentIndex() == 2 ) && ui->checkBoxRawFixEnable->isChecked() )
-        {
-            ui->toolButtonDualIsoBake->setEnabled( true );
-        } else {
-            ui->toolButtonDualIsoBake->setEnabled( false );
-        }
+        ui->toolButtonDualIsoBake->setEnabled( ( toolButtonDualIsoCurrentIndex() == 2 ) && ui->checkBoxRawFixEnable->isChecked() );
         ui->DualISOFullresBlendingLabel->setEnabled( false );
         ui->toolButtonDualIsoInterpolation->setEnabled( false );
         ui->toolButtonDualIsoAliasMap->setEnabled( false );
@@ -8569,6 +8564,7 @@ void MainWindow::toolButtonDualIsoChanged( void )
         
     }
 
+    ui->toolButtonDualIsoBake->setChecked( false );
     // Clear bake if mode changed
     m_pMlvObject->dual_iso_data.a = -1.0;
     m_pMlvObject->dual_iso_data.b = -1.0;

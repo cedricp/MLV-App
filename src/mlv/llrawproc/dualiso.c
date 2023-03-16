@@ -775,11 +775,11 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     
     /* median_bright */
     int n = 0;
-    for (int y = y0; y < h*w-2*w; y+=w*3)
+    for (int y = y0; y < h-2; y+=3)
     {
         for (int x = 0; x < w; x+=3)
         {
-            int b = bright[x + y];
+            int b = bright[x + y*w];
             if (b >= clip) continue;
             tmp[n++] = b;
         }
@@ -792,12 +792,12 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     
     /* median_dark */
     n = 0;
-    for (int y = y0; y < h*w-2*w; y += w*3)
+    for (int y = y0; y < h-2; y += 3)
     {
         for (int x = 0; x < w; x += 3)
         {
-            int d = dark[x + y];
-            int b = bright[x + y];
+            int d = dark[x + y*w];
+            int b = bright[x + y*w];
             if (b >= clip) continue;
             tmp[n++] = d;
         }
