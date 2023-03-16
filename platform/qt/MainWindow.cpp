@@ -4130,6 +4130,26 @@ void MainWindow::readXmlElementsFromFile(QXmlStreamReader *Rxml, ReceiptSettings
             receipt->setDebayer( Rxml->readElementText().toInt() );
             Rxml->readNext();
         }
+        else if( Rxml->isStartElement() && Rxml->name() == QString( "dualiso_expo_a" ) )
+        {
+            receipt->setDualIsoExpoValueA( Rxml->readElementText().toDouble() );
+            Rxml->readNext();
+        }
+        else if( Rxml->isStartElement() && Rxml->name() == QString( "dualiso_expo_b" ) )
+        {
+            receipt->setDualIsoExpoValueB( Rxml->readElementText().toDouble() );
+            Rxml->readNext();
+        }
+        else if( Rxml->isStartElement() && Rxml->name() == QString( "dualiso_expo_dark" ) )
+        {
+            receipt->setDualIsoExpoValueDarkRow( Rxml->readElementText().toInt() );
+            Rxml->readNext();
+        }
+        else if( Rxml->isStartElement() && Rxml->name() == QString( "dualiso_expo_enable" ) )
+        {
+            receipt->setDualIsoExpoValueEnabled( Rxml->readElementText().toInt() ? true : false );
+            Rxml->readNext();
+        }
         else if( Rxml->isStartElement() ) //future features
         {
             Rxml->readElementText();
@@ -4141,6 +4161,10 @@ void MainWindow::readXmlElementsFromFile(QXmlStreamReader *Rxml, ReceiptSettings
 //Write all receipt elements to xml
 void MainWindow::writeXmlElementsToFile(QXmlStreamWriter *xmlWriter, ReceiptSettings *receipt)
 {
+    double a,b;
+    int dark_row;
+    bool dual_iso_expo_enabled;
+    receipt->dualiso_expo(a, b, dark_row, dual_iso_expo_enabled);
     xmlWriter->writeTextElement( "exposure",                QString( "%1" ).arg( receipt->exposure() ) );
     xmlWriter->writeTextElement( "contrast",                QString( "%1" ).arg( receipt->contrast() ) );
     xmlWriter->writeTextElement( "pivot",                   QString( "%1" ).arg( receipt->pivot() ) );
@@ -4240,6 +4264,10 @@ void MainWindow::writeXmlElementsToFile(QXmlStreamWriter *xmlWriter, ReceiptSett
     xmlWriter->writeTextElement( "cutIn",                   QString( "%1" ).arg( receipt->cutIn() ) );
     xmlWriter->writeTextElement( "cutOut",                  QString( "%1" ).arg( receipt->cutOut() ) );
     xmlWriter->writeTextElement( "debayer",                 QString( "%1" ).arg( receipt->debayer() ) );
+    xmlWriter->writeTextElement( "dualiso_expo_a",          QString( "%1" ).arg( a ) );
+    xmlWriter->writeTextElement( "dualiso_expo_b",          QString( "%1" ).arg( b ) );
+    xmlWriter->writeTextElement( "dualiso_expo_dark",       QString( "%1" ).arg( dark_row ) );
+    xmlWriter->writeTextElement( "dualiso_expo_enable",     QString( "%1" ).arg( dual_iso_expo_enabled ? 1 : 0 ) );
 }
 
 //Delete all clips from Session

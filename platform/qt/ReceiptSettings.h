@@ -94,6 +94,10 @@ public:
     void setDualIsoDhThreshold( int value )   {m_dualIsoDhThreshold = value;}
     void setDualIsoHorizontalStripes( int on ){m_dualIsoHorizontalStripes = on;}
     void setDualIsoExpoValues( double a, double b, int dark, bool enabled ) { m_dualiso_expo_a = a;m_dualiso_expo_b = b; m_dualiso_expo_dark = dark; m_dualiso_expo_fix_enable = enabled; }
+    void setDualIsoExpoValueA( double a)  {m_dualiso_expo_a = a;}
+    void setDualIsoExpoValueB( double b)  {m_dualiso_expo_b = b;}
+    void setDualIsoExpoValueDarkRow( double d)  {m_dualiso_expo_dark = d;}
+    void setDualIsoExpoValueEnabled( double e)  {m_dualiso_expo_fix_enable = e;}
     void setDarkFrameEnabled( int on )        {m_darkFrameSubtractionMode = on;}
     void setDarkFrameFileName( QString name ) {m_darkFrameSubtractionName = name;}
     void setStretchFactorX( double factor )   {m_stretchFactorX = factor;}

@@ -533,6 +533,7 @@ mlvObject_t * initMlvObject()
 
     video->dual_iso_data.a = 0.0;
     video->dual_iso_data.b = 0.0;
+    video->dual_iso_data.dark_row_start = -1;
     video->dual_iso_data.freeze = 0;
 
     /* Will avoid main file conflicts with audio and stuff */
