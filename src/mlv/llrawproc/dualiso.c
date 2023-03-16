@@ -751,7 +751,7 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
             int pa = raw_get_pixel_20to16(x, y-2) - black;
             int pb = raw_get_pixel_20to16(x, y+2) - black;
             int pn = raw_get_pixel_20to16(x, y) - black;
-            int pi = (pa + pb + 1) / 2;
+            int pi = (pa + pb + 1) >> 1;// (/ 2);
             if (pa >= clip || pb >= clip) pi = clip0;               /* pixel too bright? discard */
             if (pi >= clip) pn = clip0;                             /* interpolated pixel not good? discard the other one too */
             interp[x + y * w] = pi;
@@ -824,7 +824,7 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
             if (++hi_n >= hi_nmax) break;
         }
     }
-    
+
     double a = 0;
     double b = 0;
 

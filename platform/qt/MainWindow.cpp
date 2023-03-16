@@ -4536,11 +4536,13 @@ void MainWindow::setSliders(ReceiptSettings *receipt, bool paste)
     int dark;
     bool dualiso_expo_enabled;
     receipt->dualiso_expo(a, b, dark, dualiso_expo_enabled);
+    ui->toolButtonDualIsoBake->blockSignals(true);
     ui->toolButtonDualIsoBake->setChecked( dualiso_expo_enabled );
+    ui->toolButtonDualIsoBake->blockSignals(false);
     m_pMlvObject->dual_iso_data.a = a;
     m_pMlvObject->dual_iso_data.b = b;
     m_pMlvObject->dual_iso_data.dark_row_start = dark;
-    m_pMlvObject->dual_iso_data.freeze = 2;
+    m_pMlvObject->dual_iso_data.freeze = dualiso_expo_enabled ? 2 : 0;
     ui->horizontalSliderDualIsoDarkHighlightThreshold->setValue( receipt->dualIsoDhThreshold() );
     ui->spinBoxDeflickerTarget->setValue( receipt->deflickerTarget() );
     on_spinBoxDeflickerTarget_valueChanged( receipt->deflickerTarget() );
