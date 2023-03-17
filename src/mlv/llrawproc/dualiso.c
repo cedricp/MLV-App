@@ -771,7 +771,8 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
      * - as ad-hoc as it looks, it's the only method that passed all the test samples so far.
      */
     int nmax = (w+2) * (h+2) / 9;
-    int * tmp = malloc(nmax * sizeof(tmp[0]));
+    int * tmp = malloc(nmax * sizeof(tmp[0]) * 2);
+    int * tmp2 = tmp + nmax;
     
     /* median_bright */
     int n = 0;
@@ -780,29 +781,18 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
         for (int x = 0; x < w; x+=3)
         {
             int b = bright[x + y*w];
+            int d = dark[x + y*w];
             if (b >= clip) continue;
-            tmp[n++] = b;
+            tmp[n] = b;
+            tmp2[n++] = d;
         }
     }
     int bmed = median_int_wirth(tmp, n);
+    int dmed = median_int_wirth(tmp2, n);
     
     /* also compute the range for bright pixels (used to find the slope) */
-    int b_lo = kth_smallest_int(tmp, n, n*98/100);
+    int b_lo = kth_smallest_int(tmp, n, n*90/100);
     int b_hi = kth_smallest_int(tmp, n, n*99.9/100);
-    
-    /* median_dark */
-    n = 0;
-    for (int y = y0; y < h-2; y += 3)
-    {
-        for (int x = 0; x < w; x += 3)
-        {
-            int d = dark[x + y*w];
-            int b = bright[x + y*w];
-            if (b >= clip) continue;
-            tmp[n++] = d;
-        }
-    }
-    int dmed = median_int_wirth(tmp, n);
     
     /* select highlights used to find the slope (ISO) */
     /* (98th percentile => up to 2% highlights) */
@@ -821,10 +811,10 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
             if (b <= b_lo) continue;
             hi_dark[hi_n] = d;
             hi_bright[hi_n] = b;
-            if (++hi_n >= hi_nmax) break;
+            if (++hi_n >= hi_nmax) goto ENDLOOP; // break nested loop
         }
     }
-
+ENDLOOP:
     double a = 0;
     double b = 0;
 
