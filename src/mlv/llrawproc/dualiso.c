@@ -266,7 +266,7 @@ int diso_get_preview(uint16_t * image_data,dual_iso_freeze_data_t* iso_data, uin
 //from cr2hdr 20bit version
 //this is not thread safe (yet)
 
-#define BRIGHT_ROW (is_bright[y % 4])
+#define BRIGHT_ROW (is_bright[y & 0b11])
 #define COUNT(x) ((int)(sizeof(x)/sizeof((x)[0])))
 
 #define raw_get_pixel(x,y) (image_data[(x) + (y) * raw_info.width])
@@ -325,23 +325,17 @@ static void white_detect(struct raw_info raw_info, uint16_t * image_data, int* w
         {
             int pix = raw_get_pixel16(x, y);
             
-#define BIN_IDX is_bright[y%4]
 #pragma omp critical
 {
-            counts[BIN_IDX] = MIN(counts[BIN_IDX], max_pix-1);
-            pixels[BIN_IDX][counts[BIN_IDX]] = -pix;
+            counts[BRIGHT_ROW] = MIN(counts[BRIGHT_ROW], max_pix-1);
+            pixels[BRIGHT_ROW][counts[BRIGHT_ROW]] = -pix;
+            counts[BRIGHT_ROW]++;
 }
-#pragma omp atomic
-            counts[BIN_IDX]++;
-#undef BIN_IDX
         }
     }
     
     whites[0] = -kth_smallest_int(pixels[0], counts[0], discard_pixels[0]) - safety_margins[0];
     whites[1] = -kth_smallest_int(pixels[1], counts[1], discard_pixels[1]) - safety_margins[1];
-    
-    //~ printf("%8d %8d\n", whites[0], whites[1]);
-    //~ printf("%8d %8d\n", counts[0], counts[1]);
     
     /* we assume 14-bit input data; out-of-range white levels may cause crash */
     *white_dark = COERCE(whites[0], 10000, 16383);
@@ -720,9 +714,9 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     /* guess ISO - find the factor and the offset for matching the bright and dark images */
     int black20 = raw_info.black_level;
     int white20 = MIN(raw_info.white_level, *white_darkened);
-    int black = black20/16;
-    int white = white20/16;
-    int clip0 = white - black;
+    int black16 = black20 >> 4;
+    int white16 = white20 >> 4;
+    int clip0 = white16 - black16;
     int clip  = clip0 * 0.95;    /* there may be nonlinear response in very bright areas */
     
     int w = raw_info.width;
@@ -739,8 +733,7 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     int* bright = malloc(w * h * sizeof(bright[0]));
     memset(dark, 0, w * h * sizeof(dark[0]));
     memset(bright, 0, w * h * sizeof(bright[0]));
-    
-#pragma omp parallel for schedule(static) default(none) shared(raw_info, raw_buffer_32, is_bright, y0,h,w,black,dark,bright,clip,clip0)
+#pragma omp parallel for schedule(static) default(none) shared(raw_info, raw_buffer_32, is_bright, y0,h,w,black16,dark,bright,clip,clip0)
     for (int y = y0; y < h-2; y += 3)
     {
         int* native = BRIGHT_ROW ? bright : dark;
@@ -748,10 +741,10 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
 
         for (int x = 0; x < w; x += 3)
         {
-            int pa = raw_get_pixel_20to16(x, y-2) - black;
-            int pb = raw_get_pixel_20to16(x, y+2) - black;
-            int pn = raw_get_pixel_20to16(x, y) - black;
-            int pi = (pa + pb + 1) >> 1;// (/ 2);
+            int pa = raw_get_pixel_20to16(x, y-2) - black16;
+            int pb = raw_get_pixel_20to16(x, y+2) - black16;
+            int pn = raw_get_pixel_20to16(x, y) - black16;
+            int pi = (pa + pb + 1) >> 1;
             if (pa >= clip || pb >= clip) pi = clip0;               /* pixel too bright? discard */
             if (pi >= clip) pn = clip0;                             /* interpolated pixel not good? discard the other one too */
             interp[x + y * w] = pi;
@@ -774,24 +767,23 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     int * tmp = malloc(nmax * sizeof(tmp[0]) * 2);
     int * tmp2 = tmp + nmax;
     
-    /* median_bright */
+    /* median_bright/dark */
     int n = 0;
     for (int y = y0; y < h-2; y+=3)
     {
         for (int x = 0; x < w; x+=3)
         {
             int b = bright[x + y*w];
-            int d = dark[x + y*w];
             if (b >= clip) continue;
             tmp[n] = b;
-            tmp2[n++] = d;
+            tmp2[n++] = dark[x + y*w];
         }
     }
     int bmed = median_int_wirth(tmp, n);
     int dmed = median_int_wirth(tmp2, n);
     
     /* also compute the range for bright pixels (used to find the slope) */
-    int b_lo = kth_smallest_int(tmp, n, n*90/100);
+    int b_lo = kth_smallest_int(tmp, n, n*98/100);
     int b_hi = kth_smallest_int(tmp, n, n*99.9/100);
     
     /* select highlights used to find the slope (ISO) */
@@ -805,13 +797,12 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     {
         for (int x = 0; x < w; x += 3)
         {
-            int d = dark[x + y*w];
             int b = bright[x + y*w];
             if (b >= b_hi) continue;
             if (b <= b_lo) continue;
-            hi_dark[hi_n] = d;
+            hi_dark[hi_n] = dark[x + y*w];
             hi_bright[hi_n] = b;
-            if (++hi_n >= hi_nmax) goto ENDLOOP; // break nested loop
+            if (++hi_n >= hi_nmax) break;// goto ENDLOOP; // break nested loop
         }
     }
 ENDLOOP:
@@ -840,6 +831,8 @@ ENDLOOP:
             b = test_b;
         }
     }
+
+    //printf("ab %f/%f %f\n",a,b,b*a);
 
     free(hi_dark); hi_dark = 0;
     free(hi_bright); hi_bright = 0;
