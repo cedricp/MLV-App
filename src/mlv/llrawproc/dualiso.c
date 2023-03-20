@@ -802,7 +802,8 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
             if (b <= b_lo) continue;
             hi_dark[hi_n] = dark[x + y*w];
             hi_bright[hi_n] = b;
-            if (++hi_n >= hi_nmax) break;// goto ENDLOOP; // break nested loop
+            //raw_set_pixel32(x,y,black20);
+            if (++hi_n >= hi_nmax) goto ENDLOOP; // break nested loop
         }
     }
 ENDLOOP:
@@ -832,7 +833,7 @@ ENDLOOP:
         }
     }
 
-    //printf("ab %f/%f %f\n",a,b,b*a);
+    //printf("ab %f/%f %f %d\n",a,b,b*a, hi_n);
 
     free(hi_dark); hi_dark = 0;
     free(hi_bright); hi_bright = 0;
@@ -859,10 +860,9 @@ static inline uint32_t * convert_to_20bit(struct raw_info raw_info, uint16_t * i
     /* promote from 14 to 20 bits (original raw buffer holds 14-bit values stored as uint16_t) */
     uint32_t * raw_buffer_32 = malloc(w * h * sizeof(raw_buffer_32[0]));
     
-#pragma omp parallel for schedule(static) default(none) shared(raw_info,raw_buffer_32, h,w,image_data) collapse(2)
-    for (int y = 0; y < h; y ++)
-        for (int x = 0; x < w; x ++)
-            raw_buffer_32[x + y*w] = raw_get_pixel_14to20(x, y);
+#pragma omp parallel for schedule(static) default(none) shared(raw_info,raw_buffer_32, h,w,image_data)
+    for (int i = 0; i < w*h; i ++)
+        raw_buffer_32[i] = ((uint32_t)image_data[i] << 6) & 0xFFFFF;
     
     return raw_buffer_32;
 }
@@ -2497,34 +2497,6 @@ static void find_and_fix_bad_pixels(struct raw_info raw_info, uint32_t * raw_buf
     free(hotpixel);
 }
 
-
-//TODO, add soft film curve
-/* soft-film curve from ufraw-mod */
-//static double soft_film(double raw, double exposure, int in_black, int in_white, int out_black, int out_white)
-//{
-//    double a = MAX(exposure - 1, 1e-5);
-//    if (raw > in_black)
-//    {
-//        /* at low values, force the derivative equal to exposure (in linear units) */
-//        /* at high values, map in_white to out_white (which normally happens at exposure=1) */
-//        double x = (raw - in_black) / (in_white - in_black);
-//        return (1.0 - 1.0/(1.0 + a*x)) / (1.0 - 1.0/(1.0 + a)) * (out_white - out_black) + out_black;
-//    }
-//    else
-//    {
-//        /* linear extrapolation below black */
-//        return COERCE((raw - in_black) * exposure / (in_white - in_black) * (out_white - out_black) + out_black, 0, out_white);
-//    }
-//}
-
-//static int soft_film_bakedwb(double raw, double exposure, int in_black, int in_white, int out_black, int out_white, double wb, double max_wb)
-//{
-//    double raw_baked = (raw - in_black) * wb / max_wb + in_black;
-//    double raw_soft = soft_film(raw_baked, exposure * max_wb, in_black, in_white, out_black, out_white);
-//    double raw_adjusted = (raw_soft - out_black) / wb + out_black;
-//    return round(raw_adjusted + fast_randn05());
-//}
-
 int diso_get_full20bit(struct raw_info raw_info,dual_iso_freeze_data_t* iso_data, uint16_t * image_data, int interp_method, int use_alias_map, int use_fullres, 
     int chroma_smooth_method, int vertical_stripes_fix, int use_horizontal_stripe_fix, int fix_bad_pixels_dual, int bad_pixels_search_method, 
     int dark_highlight_threshold)
@@ -2538,7 +2510,11 @@ int diso_get_full20bit(struct raw_info raw_info,dual_iso_freeze_data_t* iso_data
     perf_clock = clock();
 #endif
     /* RGGB or GBRG? */
-    int rggb = identify_rggb_or_gbrg(raw_info, image_data);    
+    int rggb = iso_data->rggb;
+    if (iso_data->freeze < 2){
+        rggb = identify_rggb_or_gbrg(raw_info, image_data);
+        iso_data->rggb = rggb;
+    } 
 #ifdef PERF_INFO
     perf_clock = clock()-perf_clock;
     printf("identify_rggb_or_gbrg took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
@@ -2558,7 +2534,26 @@ int diso_get_full20bit(struct raw_info raw_info,dual_iso_freeze_data_t* iso_data
 #ifdef PERF_INFO
     perf_clock = clock();
 #endif
-    if (!identify_bright_and_dark_fields(raw_info, image_data, rggb, is_bright)) return 0;
+
+    if (iso_data->freeze < 2){
+        if(!identify_bright_and_dark_fields(raw_info, image_data, rggb, is_bright)){    
+            iso_data->rggb = -1;
+            return 0;
+        }
+    } else {
+        is_bright[0] = iso_data->is_bright[0];
+        is_bright[1] = iso_data->is_bright[1];
+        is_bright[2] = iso_data->is_bright[2];
+        is_bright[3] = iso_data->is_bright[3];
+    }
+
+    if (iso_data->freeze == 1){
+        iso_data->is_bright[0] = is_bright[0];
+        iso_data->is_bright[1] = is_bright[1];
+        iso_data->is_bright[2] = is_bright[2];
+        iso_data->is_bright[3] = is_bright[3];
+    }
+
 #ifdef PERF_INFO
     perf_clock = clock()-perf_clock;
     printf("identify_bright_and_dark_fields %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
