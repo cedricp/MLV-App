@@ -4150,6 +4150,11 @@ void MainWindow::readXmlElementsFromFile(QXmlStreamReader *Rxml, ReceiptSettings
             receipt->setDualIsoExpoValueEnabled( Rxml->readElementText().toInt() ? true : false );
             Rxml->readNext();
         }
+        else if( Rxml->isStartElement() && Rxml->name() == QString( "dualiso_expo_extra" ) )
+        {
+            receipt->setDualIsoExpoValueExtra( Rxml->readElementText().toInt() );
+            Rxml->readNext();
+        }
         else if( Rxml->isStartElement() ) //future features
         {
             Rxml->readElementText();
@@ -4161,10 +4166,8 @@ void MainWindow::readXmlElementsFromFile(QXmlStreamReader *Rxml, ReceiptSettings
 //Write all receipt elements to xml
 void MainWindow::writeXmlElementsToFile(QXmlStreamWriter *xmlWriter, ReceiptSettings *receipt)
 {
-    double a,b;
-    int dark_row;
-    bool dual_iso_expo_enabled;
-    receipt->dualiso_expo(a, b, dark_row, dual_iso_expo_enabled);
+    dual_iso_freeze_data_t dual_data;
+    int dual_iso_extra = receipt->dualiso_expo(&dual_data);
     xmlWriter->writeTextElement( "exposure",                QString( "%1" ).arg( receipt->exposure() ) );
     xmlWriter->writeTextElement( "contrast",                QString( "%1" ).arg( receipt->contrast() ) );
     xmlWriter->writeTextElement( "pivot",                   QString( "%1" ).arg( receipt->pivot() ) );
@@ -4264,10 +4267,11 @@ void MainWindow::writeXmlElementsToFile(QXmlStreamWriter *xmlWriter, ReceiptSett
     xmlWriter->writeTextElement( "cutIn",                   QString( "%1" ).arg( receipt->cutIn() ) );
     xmlWriter->writeTextElement( "cutOut",                  QString( "%1" ).arg( receipt->cutOut() ) );
     xmlWriter->writeTextElement( "debayer",                 QString( "%1" ).arg( receipt->debayer() ) );
-    xmlWriter->writeTextElement( "dualiso_expo_a",          QString( "%1" ).arg( a ) );
-    xmlWriter->writeTextElement( "dualiso_expo_b",          QString( "%1" ).arg( b ) );
-    xmlWriter->writeTextElement( "dualiso_expo_dark",       QString( "%1" ).arg( dark_row ) );
-    xmlWriter->writeTextElement( "dualiso_expo_enable",     QString( "%1" ).arg( dual_iso_expo_enabled ? 1 : 0 ) );
+    xmlWriter->writeTextElement( "dualiso_expo_a",          QString( "%1" ).arg( dual_data.a ) );
+    xmlWriter->writeTextElement( "dualiso_expo_b",          QString( "%1" ).arg( dual_data.b ) );
+    xmlWriter->writeTextElement( "dualiso_expo_dark",       QString( "%1" ).arg( dual_data.dark_row_start ) );
+    xmlWriter->writeTextElement( "dualiso_expo_enable",     QString( "%1" ).arg( dual_data.freeze  == 2 ? 1 : 0 ) );
+    xmlWriter->writeTextElement( "dualiso_expo_extra",      QString( "%1" ).arg( dual_iso_extra ) );
 }
 
 //Delete all clips from Session
@@ -4532,17 +4536,10 @@ void MainWindow::setSliders(ReceiptSettings *receipt, bool paste)
     setToolButtonDualIsoFullresBlending( receipt->dualIsoFrBlending() );
     setToolButtonDualIsoHorizontalStripesFix( receipt->dualIsoHorizontalStripes() );
     on_horizontalSliderDualIsoDarkHighlightThreshold_valueChanged( receipt->dualIsoDhThreshold() );
-    double a,b;
-    int dark;
-    bool dualiso_expo_enabled;
-    receipt->dualiso_expo(a, b, dark, dualiso_expo_enabled);
+    receipt->dualiso_expo(&m_pMlvObject->dual_iso_data);
     ui->toolButtonDualIsoBake->blockSignals(true);
-    ui->toolButtonDualIsoBake->setChecked( dualiso_expo_enabled );
+    ui->toolButtonDualIsoBake->setChecked( m_pMlvObject->dual_iso_data.freeze == 2 );
     ui->toolButtonDualIsoBake->blockSignals(false);
-    m_pMlvObject->dual_iso_data.a = a;
-    m_pMlvObject->dual_iso_data.b = b;
-    m_pMlvObject->dual_iso_data.dark_row_start = dark;
-    m_pMlvObject->dual_iso_data.freeze = dualiso_expo_enabled ? 2 : 0;
     ui->horizontalSliderDualIsoDarkHighlightThreshold->setValue( receipt->dualIsoDhThreshold() );
     ui->spinBoxDeflickerTarget->setValue( receipt->deflickerTarget() );
     on_spinBoxDeflickerTarget_valueChanged( receipt->deflickerTarget() );
@@ -4779,7 +4776,7 @@ void MainWindow::setReceipt( ReceiptSettings *receipt )
     receipt->setVidstabSmoothing( ui->horizontalSliderVidstabSmoothing->value() );
     receipt->setVidstabTripod( ui->checkBoxVidstabTripod->isChecked() );
 
-    receipt->setDualIsoExpoValues( m_pMlvObject->dual_iso_data.a, m_pMlvObject->dual_iso_data.b, m_pMlvObject->dual_iso_data.dark_row_start, ui->toolButtonDualIsoBake->isChecked() );
+    receipt->setDualIsoExpoValues( &m_pMlvObject->dual_iso_data );
 }
 
 //Replace receipt settings

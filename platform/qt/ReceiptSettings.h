@@ -8,6 +8,9 @@
 #ifndef RECEIPTSETTINGS_H
 #define RECEIPTSETTINGS_H
 
+extern "C"{
+    #include "../../src/mlv/mlv_object.h"
+}
 #include <QObject>
 
 class ReceiptSettings
@@ -93,12 +96,23 @@ public:
     void setDualIsoBlack( uint32_t level )    {m_dualIsoBlack = level;}
     void setDualIsoDhThreshold( int value )   {m_dualIsoDhThreshold = value;}
     void setDualIsoHorizontalStripes( int on ){m_dualIsoHorizontalStripes = on;}
-    void setDualIsoExpoValues( double a, double b, int dark, bool enabled ) { m_dualiso_expo_a = a;m_dualiso_expo_b = b; m_dualiso_expo_dark = dark; m_dualiso_expo_fix_enable = enabled; }
-    void setDualIsoExpoValueA( double a)  {m_dualiso_expo_a = a;}
-    void setDualIsoExpoValueB( double b)  {m_dualiso_expo_b = b;}
-    void setDualIsoExpoValueDarkRow( double d)  {m_dualiso_expo_dark = d;}
-    void setDualIsoExpoValueEnabled( double e)  {m_dualiso_expo_fix_enable = e;}
-    void setDarkFrameEnabled( int on )        {m_darkFrameSubtractionMode = on;}
+    void setDualIsoExpoValues( const dual_iso_freeze_data_t* diso_data ) {
+         m_dualiso_expo_a = diso_data->a;
+         m_dualiso_expo_b = diso_data->b;
+         m_dualiso_expo_dark = diso_data->dark_row_start;
+         m_dualiso_expo_fix_enable = diso_data->freeze == 2;
+         m_dualiso_extra  = ((diso_data->rggb ? 1 : 0) << 4);
+         m_dualiso_extra |= ((diso_data->is_bright[3] ? 1 : 0) << 3);
+         m_dualiso_extra |= ((diso_data->is_bright[2] ? 1 : 0) << 2);
+         m_dualiso_extra |= ((diso_data->is_bright[1] ? 1 : 0) << 1);
+         m_dualiso_extra |= ((diso_data->is_bright[0] ? 1 : 0));
+    }
+    void setDualIsoExpoValueA( double a)      {m_dualiso_expo_a = a;}
+    void setDualIsoExpoValueB( double b)      {m_dualiso_expo_b = b;}
+    void setDualIsoExpoValueDarkRow( int d)   {m_dualiso_expo_dark = d;}
+    void setDualIsoExpoValueEnabled( bool e)  {m_dualiso_expo_fix_enable = e;}
+    void setDualIsoExpoValueExtra( int e)     {m_dualiso_expo_fix_enable = e;}
+    void setDarkFrameEnabled( bool extra )    {m_dualiso_extra = extra; }
     void setDarkFrameFileName( QString name ) {m_darkFrameSubtractionName = name;}
     void setStretchFactorX( double factor )   {m_stretchFactorX = factor;}
     void setStretchFactorY( double factor )   {m_stretchFactorY = factor;}
@@ -236,7 +250,18 @@ public:
     uint32_t lastPlaybackPosition( void ){return m_lastPlaybackPosition;}
     uint8_t debayer( void ){return m_debayer;}
     uint8_t mark( void ){return m_mark;}
-    void dualiso_expo( double &a, double&b, int& dark, bool &enabled ){a = m_dualiso_expo_a;b = m_dualiso_expo_b; dark = m_dualiso_expo_dark; enabled = m_dualiso_expo_fix_enable;}
+    int dualiso_expo( dual_iso_freeze_data_t* dual_iso_data ){
+        dual_iso_data->a = m_dualiso_expo_a;
+        dual_iso_data->b = m_dualiso_expo_b;
+        dual_iso_data->dark_row_start = m_dualiso_expo_dark;
+        dual_iso_data->freeze = m_dualiso_expo_fix_enable ? 2 : 0;
+        dual_iso_data->rggb = (m_dualiso_extra >> 4) & 1;
+        dual_iso_data->is_bright[0] = (m_dualiso_extra) & 1;
+        dual_iso_data->is_bright[1] = (m_dualiso_extra >> 1) & 1;
+        dual_iso_data->is_bright[2] = (m_dualiso_extra >> 2) & 1;
+        dual_iso_data->is_bright[3] = (m_dualiso_extra >> 3) & 1;
+        return m_dualiso_extra;
+    }
 
 private:
     bool m_neverLoaded;
@@ -350,6 +375,8 @@ private:
     double m_dualiso_expo_a, m_dualiso_expo_b;
     int m_dualiso_expo_dark;
     bool m_dualiso_expo_fix_enable;
+    int m_dualiso_bd[4];
+    int m_dualiso_extra;
 };
 
 #endif // RECEIPTSETTINGS_H

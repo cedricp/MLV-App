@@ -724,6 +724,7 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     int y0 = raw_info.active_area.y1 + 2;
 
     if (iso_data->freeze == 2){
+        //printf("ab %f/%f %f\n",iso_data->a,iso_data->b,iso_data->b*iso_data->a);
         apply_correction(iso_data->a, iso_data->b, h, w, raw_info, black20, white20, raw_buffer_32, corr_ev, white_darkened, is_bright);
         return 1;
     }
@@ -832,8 +833,6 @@ ENDLOOP:
             b = test_b;
         }
     }
-
-    //printf("ab %f/%f %f %d\n",a,b,b*a, hi_n);
 
     free(hi_dark); hi_dark = 0;
     free(hi_bright); hi_bright = 0;
@@ -2511,10 +2510,12 @@ int diso_get_full20bit(struct raw_info raw_info,dual_iso_freeze_data_t* iso_data
 #endif
     /* RGGB or GBRG? */
     int rggb = iso_data->rggb;
-    if (iso_data->freeze < 2){
+    if (iso_data->freeze < 2 || iso_data->rggb < 0){
         rggb = identify_rggb_or_gbrg(raw_info, image_data);
         iso_data->rggb = rggb;
-    } 
+    } else {
+        printf("Using cache\n");
+    }
 #ifdef PERF_INFO
     perf_clock = clock()-perf_clock;
     printf("identify_rggb_or_gbrg took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
@@ -2535,7 +2536,7 @@ int diso_get_full20bit(struct raw_info raw_info,dual_iso_freeze_data_t* iso_data
     perf_clock = clock();
 #endif
 
-    if (iso_data->freeze < 2){
+    if (iso_data->freeze < 2 || iso_data->is_bright[0] < 0){
         if(!identify_bright_and_dark_fields(raw_info, image_data, rggb, is_bright)){    
             iso_data->rggb = -1;
             return 0;
