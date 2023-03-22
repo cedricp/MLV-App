@@ -4130,6 +4130,31 @@ void MainWindow::readXmlElementsFromFile(QXmlStreamReader *Rxml, ReceiptSettings
             receipt->setDebayer( Rxml->readElementText().toInt() );
             Rxml->readNext();
         }
+        else if( Rxml->isStartElement() && Rxml->name() == QString( "dualiso_expo_a" ) )
+        {
+            receipt->setDualIsoExpoValueA( Rxml->readElementText().toDouble() );
+            Rxml->readNext();
+        }
+        else if( Rxml->isStartElement() && Rxml->name() == QString( "dualiso_expo_b" ) )
+        {
+            receipt->setDualIsoExpoValueB( Rxml->readElementText().toDouble() );
+            Rxml->readNext();
+        }
+        else if( Rxml->isStartElement() && Rxml->name() == QString( "dualiso_expo_dark" ) )
+        {
+            receipt->setDualIsoExpoValueDarkRow( Rxml->readElementText().toInt() );
+            Rxml->readNext();
+        }
+        else if( Rxml->isStartElement() && Rxml->name() == QString( "dualiso_expo_enable" ) )
+        {
+            receipt->setDualIsoExpoValueEnabled( Rxml->readElementText().toInt() ? true : false );
+            Rxml->readNext();
+        }
+        else if( Rxml->isStartElement() && Rxml->name() == QString( "dualiso_expo_extra" ) )
+        {
+            receipt->setDualIsoExpoValueExtra( Rxml->readElementText().toInt() );
+            Rxml->readNext();
+        }
         else if( Rxml->isStartElement() ) //future features
         {
             Rxml->readElementText();
@@ -4141,6 +4166,8 @@ void MainWindow::readXmlElementsFromFile(QXmlStreamReader *Rxml, ReceiptSettings
 //Write all receipt elements to xml
 void MainWindow::writeXmlElementsToFile(QXmlStreamWriter *xmlWriter, ReceiptSettings *receipt)
 {
+    dual_iso_freeze_data_t dual_data;
+    int dual_iso_extra = receipt->dualiso_expo(&dual_data);
     xmlWriter->writeTextElement( "exposure",                QString( "%1" ).arg( receipt->exposure() ) );
     xmlWriter->writeTextElement( "contrast",                QString( "%1" ).arg( receipt->contrast() ) );
     xmlWriter->writeTextElement( "pivot",                   QString( "%1" ).arg( receipt->pivot() ) );
@@ -4240,6 +4267,11 @@ void MainWindow::writeXmlElementsToFile(QXmlStreamWriter *xmlWriter, ReceiptSett
     xmlWriter->writeTextElement( "cutIn",                   QString( "%1" ).arg( receipt->cutIn() ) );
     xmlWriter->writeTextElement( "cutOut",                  QString( "%1" ).arg( receipt->cutOut() ) );
     xmlWriter->writeTextElement( "debayer",                 QString( "%1" ).arg( receipt->debayer() ) );
+    xmlWriter->writeTextElement( "dualiso_expo_a",          QString( "%1" ).arg( dual_data.a ) );
+    xmlWriter->writeTextElement( "dualiso_expo_b",          QString( "%1" ).arg( dual_data.b ) );
+    xmlWriter->writeTextElement( "dualiso_expo_dark",       QString( "%1" ).arg( dual_data.dark_row_start ) );
+    xmlWriter->writeTextElement( "dualiso_expo_enable",     QString( "%1" ).arg( dual_data.freeze  == 2 ? 1 : 0 ) );
+    xmlWriter->writeTextElement( "dualiso_expo_extra",      QString( "%1" ).arg( dual_iso_extra ) );
 }
 
 //Delete all clips from Session
@@ -4504,6 +4536,10 @@ void MainWindow::setSliders(ReceiptSettings *receipt, bool paste)
     setToolButtonDualIsoFullresBlending( receipt->dualIsoFrBlending() );
     setToolButtonDualIsoHorizontalStripesFix( receipt->dualIsoHorizontalStripes() );
     on_horizontalSliderDualIsoDarkHighlightThreshold_valueChanged( receipt->dualIsoDhThreshold() );
+    receipt->dualiso_expo(&m_pMlvObject->dual_iso_data);
+    ui->toolButtonDualIsoBake->blockSignals(true);
+    ui->toolButtonDualIsoBake->setChecked( m_pMlvObject->dual_iso_data.freeze == 2 );
+    ui->toolButtonDualIsoBake->blockSignals(false);
     ui->horizontalSliderDualIsoDarkHighlightThreshold->setValue( receipt->dualIsoDhThreshold() );
     ui->spinBoxDeflickerTarget->setValue( receipt->deflickerTarget() );
     on_spinBoxDeflickerTarget_valueChanged( receipt->deflickerTarget() );
@@ -4739,6 +4775,8 @@ void MainWindow::setReceipt( ReceiptSettings *receipt )
     receipt->setVidstabZoom( ui->horizontalSliderVidstabZoom->value() );
     receipt->setVidstabSmoothing( ui->horizontalSliderVidstabSmoothing->value() );
     receipt->setVidstabTripod( ui->checkBoxVidstabTripod->isChecked() );
+
+    receipt->setDualIsoExpoValues( &m_pMlvObject->dual_iso_data );
 }
 
 //Replace receipt settings
@@ -8545,9 +8583,11 @@ void MainWindow::toolButtonDualIsoChanged( void )
         ui->labelDualIsoHorizontalStripesFix->setEnabled( true );
         ui->label_DualISODarkHighlightThreshold->setEnabled( true );
         ui->label_DarkHighlightThresholdVal->setEnabled( true );
+        ui->toolButtonDualIsoBake->setEnabled( true );
     }
-    else
+    else 
     {
+        ui->toolButtonDualIsoBake->setEnabled( ( toolButtonDualIsoCurrentIndex() == 2 ) && ui->checkBoxRawFixEnable->isChecked() );
         ui->DualISOFullresBlendingLabel->setEnabled( false );
         ui->toolButtonDualIsoInterpolation->setEnabled( false );
         ui->toolButtonDualIsoAliasMap->setEnabled( false );
@@ -8561,12 +8601,28 @@ void MainWindow::toolButtonDualIsoChanged( void )
         ui->label_DarkHighlightThresholdVal->setEnabled( false );
     }
 
+    ui->toolButtonDualIsoBake->setChecked( false );
+    // Clear bake if mode changed
+    m_pMlvObject->dual_iso_data.a = 0.0;
+    m_pMlvObject->dual_iso_data.b = 0.0;
+    m_pMlvObject->dual_iso_data.freeze = 0;
+
     //Set dualIso mode
     llrpSetDualIsoMode( m_pMlvObject, toolButtonDualIsoCurrentIndex() );
     //Reset processing black and white levels
     processingSetBlackAndWhiteLevel( m_pMlvObject->processing, getMlvBlackLevel( m_pMlvObject ), getMlvWhiteLevel( m_pMlvObject ), getMlvBitdepth( m_pMlvObject ) );
     //Reset diso levels to mlv raw levels
     llrpResetDngBWLevels( m_pMlvObject );
+    resetMlvCache( m_pMlvObject );
+    resetMlvCachedFrame( m_pMlvObject );
+    m_frameChanged = true;
+}
+
+void MainWindow::on_toolButtonDualIsoBake_clicked(bool checked)
+{
+    m_pMlvObject->dual_iso_data.a = 0.0;
+    m_pMlvObject->dual_iso_data.b = 0.0;
+    m_pMlvObject->dual_iso_data.freeze = checked ? 1 : 0;
     resetMlvCache( m_pMlvObject );
     resetMlvCachedFrame( m_pMlvObject );
     m_frameChanged = true;

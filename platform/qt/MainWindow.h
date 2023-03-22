@@ -300,6 +300,7 @@ private slots:
     void toolButtonVerticalStripesChanged( void );
     void on_spinBoxDeflickerTarget_valueChanged(int arg1);
     void on_toolButtonDualIsoForce_toggled( bool checked );
+    void on_toolButtonDualIsoBake_clicked(bool checked);
     void toolButtonDualIsoChanged( void );
     void toolButtonDualIsoInterpolationChanged( void );
     void toolButtonDualIsoAliasMapChanged( void );

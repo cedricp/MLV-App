@@ -42,6 +42,13 @@ typedef struct {
     uint64_t    df_offset;     /* offset to the dark frame location */
 } mapp_header_t;
 
+typedef struct  {
+    double a,b;
+    int freeze, dark_row_start;
+    int rggb;
+    int is_bright[4];
+} dual_iso_freeze_data_t;
+
 /* Struct for MLV handling */
 typedef struct {
 
@@ -158,7 +165,7 @@ typedef struct {
     /* How many cores, will not neccesarily determine number of threads made in any case, but helps */
     int cpu_cores; /* Default 4 */
 
-
+    dual_iso_freeze_data_t dual_iso_data;
 } mlvObject_t;
 
 #endif
