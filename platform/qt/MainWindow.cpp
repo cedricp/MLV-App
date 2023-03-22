@@ -8584,6 +8584,7 @@ void MainWindow::toolButtonDualIsoChanged( void )
         ui->label_DualISODarkHighlightThreshold->setEnabled( true );
         ui->label_DarkHighlightThresholdVal->setEnabled( true );
         ui->toolButtonDualIsoBake->setEnabled( true );
+        ui->labelDualIsoBake->setEnabled( true );
     }
     else 
     {
@@ -8599,6 +8600,8 @@ void MainWindow::toolButtonDualIsoChanged( void )
         ui->labelDualIsoHorizontalStripesFix->setEnabled( false );
         ui->label_DualISODarkHighlightThreshold->setEnabled( false );
         ui->label_DarkHighlightThresholdVal->setEnabled( false );
+        ui->toolButtonDualIsoBake->setEnabled( false );
+        ui->labelDualIsoBake->setEnabled( false );
     }
 
     ui->toolButtonDualIsoBake->setChecked( false );
