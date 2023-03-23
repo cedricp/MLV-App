@@ -32,6 +32,8 @@
 #include <time.h>
 #include <omp.h>
 
+#undef STDOUT_SILENT
+
 #define EV_RESOLUTION 65536
 #ifndef M_PI
 #define M_PI 3.14159265358979323846 /* pi */
@@ -276,7 +278,7 @@ int diso_get_preview(uint16_t * image_data,dual_iso_freeze_data_t* iso_data, uin
 #define raw_get_pixel32(x,y) (raw_buffer_32[(x) + (y) * raw_info.width])
 #define raw_set_pixel32(x,y,value) raw_buffer_32[(x) + (y)*raw_info.width] = value
 #define raw_get_pixel_20to16(x,y) ((raw_get_pixel32(x,y) >> 4) & 0xFFFF)
-#define raw_set_pixel_20to16_rand(x,y,value) image_data[(x) + (y) * raw_info.width] = COERCE((int)((value) / 16.0 + fast_randn05() + 0.5), 0, 0xFFFF)
+#define raw_set_pixel_20to16_rand(i,value) image_data[i] = COERCE((int)((value) / 16.0 + fast_randn05() + 0.5), 0, 0xFFFF)
 #define raw_set_pixel20(x,y,value) raw_buffer_32[(x) + (y) * raw_info.width] = COERCE((value), 0, 0xFFFFF)
 
 static const double fullres_start = 4;
@@ -352,7 +354,6 @@ static void compute_black_noise(struct raw_info raw_info, uint16_t * image_data,
     long long black = 0;
     int num = 0;
     /* compute average level */
-#pragma omp parallel for schedule(static) default(none) shared(raw_info, image_data,y1,y2,dy,dx,x1,x2) reduction(+:black) reduction(+:num) collapse(2)
     for (int y = y1; y < y2; y += dy)
     {
         for (int x = x1; x < x2; x += dx)
@@ -365,7 +366,6 @@ static void compute_black_noise(struct raw_info raw_info, uint16_t * image_data,
     
     /* compute standard deviation */
     double stdev = 0;
-//#xpragma omp parallel for schedule(static) default(none) shared(raw_info, image_data, mean,y1,y2,dy,dx,x1,x2) reduction(+:stdev)
     for (int y = y1; y < y2; y += dy)
     {
         for (int x = x1; x < x2; x += dx)
@@ -911,7 +911,7 @@ static inline double compute_noise(struct raw_info raw_info, uint16_t * image_da
     double noise_avg = 0.0;
 #pragma omp parallel for schedule(static) num_threads(4) default(none) shared(raw_info, image_data, noise_avg, noise_std)
     for (int y = 0; y < 4; y++)
-        compute_black_noise(raw_info, image_data, 8, raw_info.active_area.x1 - 8, raw_info.active_area.y1/4*4 + 20 + y, raw_info.active_area.y2 - 20, 1, 4, &noise_avg, &noise_std[y]);
+        compute_black_noise(raw_info, image_data, raw_info.active_area.x1 + 8, raw_info.active_area.x2 - 8, raw_info.active_area.y1/4*4 + 20 + y, raw_info.active_area.y2 - 20, 1, 4, &noise_avg, &noise_std[y]);
 #ifndef STDOUT_SILENT
     printf("Noise levels    : %.02f %.02f %.02f %.02f (14-bit)\n", noise_std[0], noise_std[1], noise_std[2], noise_std[3]);
 #endif
@@ -1965,12 +1965,10 @@ static inline void convert_20_to_16bit(struct raw_info raw_info, uint16_t * imag
     raw_info.black_level /= 16;
     raw_info.white_level /= 16;
     
-#pragma omp parallel for schedule(static) default(none) shared(h,w,image_data, raw_buffer_32, raw_info) collapse(2)
-    for (int y = 0; y < h; y++)
-        for (int x = 0; x < w; x++)
-            raw_set_pixel_20to16_rand(x, y, raw_buffer_32[x + y*w]);
+#pragma omp parallel for schedule(static) default(none) shared(h,w,image_data, raw_buffer_32, raw_info)
+    for (int i = 0; i < w * h; i++)
+        raw_set_pixel_20to16_rand(i, raw_buffer_32[i]);
 }
-
 
 /**
  * Fix vertical stripes (banding) from 5D Mark III (and maybe others).
@@ -2861,7 +2859,7 @@ int diso_get_full20bit(struct raw_info raw_info,dual_iso_freeze_data_t* iso_data
             for (int x = 2; x < w-2; x ++)
                 raw_set_pixel32(x, y, bright[x + y*w]);
 
-        compute_black_noise(raw_info, image_data, 8, raw_info.active_area.x1 - 8, raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0]);
+        compute_black_noise(raw_info, image_data, raw_info.active_area.x1 + 8, raw_info.active_area.x2 - 8, raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0]);
 #ifdef PERF_INFO
     perf_clock = clock()-perf_clock;
     printf("compute_black_noise took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
@@ -2883,7 +2881,7 @@ int diso_get_full20bit(struct raw_info raw_info,dual_iso_freeze_data_t* iso_data
     perf_clock = clock();
 #endif
         /* let's see how much dynamic range we actually got */
-        compute_black_noise(raw_info, image_data, 8, raw_info.active_area.x1 - 8, raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0]); 
+        compute_black_noise(raw_info, image_data, raw_info.active_area.x1 + 8, raw_info.active_area.x2 - 8, raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0]); 
 #ifdef PERF_INFO
     perf_clock = clock()-perf_clock;
     printf("compute_black_noise took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
