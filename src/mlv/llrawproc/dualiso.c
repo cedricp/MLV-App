@@ -340,7 +340,7 @@ static void white_detect(struct raw_info raw_info, uint16_t * image_data, int* w
     whites[1] = -kth_smallest_int(pixels[1], counts[1], discard_pixels[1]) - safety_margins[1];
     
     /* we assume 14-bit input data; out-of-range white levels may cause crash */
-    *white_dark = COERCE(whites[0], 10000, 16383);
+    *white_dark = COERCE(whites[0], 5000, 16383);
     *white_bright = COERCE(whites[1], 5000, 16383);
 #ifndef STDOUT_SILENT
     printf("White levels    : %d %d\n", *white_dark, *white_bright);
@@ -349,8 +349,20 @@ static void white_detect(struct raw_info raw_info, uint16_t * image_data, int* w
     free(pixels[1]);
 }
 
-static void compute_black_noise(struct raw_info raw_info, uint16_t * image_data, int x1, int x2, int y1, int y2, int dx, int dy, double* out_mean, double* out_stdev)
+static void compute_black_noise20(struct raw_info raw_info, uint32_t * raw_buffer_32,int y1, int y2, int dx, int dy, double* out_mean, double* out_stdev)
 {
+    int x1 = 8;
+    int x2 = raw_info.active_area.x1 - 8;
+
+    if (x2 <= 0){
+        // We have no access to sensor device "black bars" zone to measure noise (because it's cropped I guess)
+        *out_mean = raw_info.black_level;
+        *out_stdev = 8+6; /* default to 11 stops of DR */
+        return;
+    }
+
+    double mean, stdev;
+
     long long black = 0;
     int num = 0;
     /* compute average level */
@@ -358,19 +370,19 @@ static void compute_black_noise(struct raw_info raw_info, uint16_t * image_data,
     {
         for (int x = x1; x < x2; x += dx)
         {
-            black += raw_get_pixel(x, y);
+            black += raw_get_pixel20(x, y);
             num++;
         }
     }
-    double mean = (double) black / num;
-    
+    mean = (double) black / num;
+
     /* compute standard deviation */
-    double stdev = 0;
+    stdev = 0;
     for (int y = y1; y < y2; y += dy)
     {
         for (int x = x1; x < x2; x += dx)
         {
-            double dif = raw_get_pixel(x, y) - mean;
+            double dif = raw_get_pixel20(x, y) - mean;
             stdev += dif * dif;
         }
     }
@@ -380,7 +392,8 @@ static void compute_black_noise(struct raw_info raw_info, uint16_t * image_data,
     if (num == 0)
     {
         mean = raw_info.black_level;
-        stdev = 8; /* default to 11 stops of DR */
+        /* default to 11 stops (14-log2(8)) of DR */
+        stdev = 8 + 6; 
     }
     
     *out_mean = mean;
@@ -664,8 +677,7 @@ static int identify_bright_and_dark_fields(struct raw_info raw_info, uint16_t * 
 static void apply_correction(double a, double b, int h, int w, struct raw_info raw_info, int black20, int white20, uint32_t* raw_buffer_32, double * corr_ev, int * white_darkened, int * is_bright)
 {
     /* apply the correction */
-    double b20 = b * 16;
-#pragma omp parallel for schedule(static) default(none) shared(black20, is_bright, h, w, b20, raw_buffer_32, raw_info, a) collapse(2)
+#pragma omp parallel for schedule(static) default(none) shared(black20, is_bright, h, w, b, raw_buffer_32, raw_info, a) collapse(2)
     for (int y = 0; y < h; y ++)
     {
         for (int x = 0; x < w; x ++)
@@ -676,11 +688,11 @@ static void apply_correction(double a, double b, int h, int w, struct raw_info r
             if (BRIGHT_ROW)
             {
                 /* bright exposure: darken and apply the black offset (fixme: why not half?) */
-                p = (p - black20) * a + black20 + b20*a;
+                p = (p - black20) * a + black20 + b*a;
             }
             else
             {
-                p = p - b20 + b20*a;
+                p = p - b + b*a;
             }
             
             /* out of range? */
@@ -690,7 +702,7 @@ static void apply_correction(double a, double b, int h, int w, struct raw_info r
             raw_set_pixel20(x, y, p);
         }
     }
-    *white_darkened = (white20 - black20 + b20) * a + black20;
+    *white_darkened = (white20 - black20 + b) * a + black20;
     
     double factor = 1/a;
     if (factor < 1.2 || !isfinite(factor))
@@ -703,7 +715,7 @@ static void apply_correction(double a, double b, int h, int w, struct raw_info r
     
     *corr_ev = log2(factor);
 #ifndef STDOUT_SILENT
-    printf("ISO difference  : %.2f EV (%d)\n", log2(factor), (int)round(factor*100));
+    printf("ISO difference  : %.2f EV (%d) (a[%f] b[%f])\n", *corr_ev, (int)round(factor*100), a, b);
     printf("Black delta     : %.2f\n", b/4); /* we want to display black delta for the 14-bit original data, but we have computed it from 16-bit data */
 #endif
 }
@@ -714,9 +726,7 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     /* guess ISO - find the factor and the offset for matching the bright and dark images */
     int black20 = raw_info.black_level;
     int white20 = MIN(raw_info.white_level, *white_darkened);
-    int black16 = black20 >> 4;
-    int white16 = white20 >> 4;
-    int clip0 = white16 - black16;
+    int clip0 = white20 - black20;
     int clip  = clip0 * 0.95;    /* there may be nonlinear response in very bright areas */
     
     int w = raw_info.width;
@@ -734,7 +744,7 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
     int* bright = malloc(w * h * sizeof(bright[0]));
     memset(dark, 0, w * h * sizeof(dark[0]));
     memset(bright, 0, w * h * sizeof(bright[0]));
-#pragma omp parallel for schedule(static) default(none) shared(raw_info, raw_buffer_32, is_bright, y0,h,w,black16,dark,bright,clip,clip0)
+#pragma omp parallel for schedule(static) default(none) shared(raw_info, raw_buffer_32, is_bright, y0,h,w,black20,dark,bright,clip,clip0)
     for (int y = y0; y < h-2; y += 3)
     {
         int* native = BRIGHT_ROW ? bright : dark;
@@ -742,9 +752,9 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
 
         for (int x = 0; x < w; x += 3)
         {
-            int pa = raw_get_pixel_20to16(x, y-2) - black16;
-            int pb = raw_get_pixel_20to16(x, y+2) - black16;
-            int pn = raw_get_pixel_20to16(x, y) - black16;
+            int pa = raw_get_pixel32(x, y-2) - black20;
+            int pb = raw_get_pixel32(x, y+2) - black20;
+            int pn = raw_get_pixel32(x, y) - black20;
             int pi = (pa + pb + 1) >> 1;
             if (pa >= clip || pb >= clip) pi = clip0;               /* pixel too bright? discard */
             if (pi >= clip) pn = clip0;                             /* interpolated pixel not good? discard the other one too */
@@ -803,7 +813,6 @@ static int match_exposures(struct raw_info raw_info, uint32_t * raw_buffer_32, d
             if (b <= b_lo) continue;
             hi_dark[hi_n] = dark[x + y*w];
             hi_bright[hi_n] = b;
-            //raw_set_pixel32(x,y,black20);
             if (++hi_n >= hi_nmax) goto ENDLOOP; // break nested loop
         }
     }
@@ -906,15 +915,17 @@ static inline void build_ev2raw_lut(int * raw2ev, int * ev2raw_0, int black, int
     //~ printf("%d %d %d %d %d %d %d *%d* %d %d %d %d %d\n", ev2raw[raw2ev[0]], ev2raw[raw2ev[16000]], ev2raw[raw2ev[32000]], ev2raw[raw2ev[131068]], ev2raw[raw2ev[131069]], ev2raw[raw2ev[131070]], ev2raw[raw2ev[131071]], ev2raw[raw2ev[131072]], ev2raw[raw2ev[131073]], ev2raw[raw2ev[131074]], ev2raw[raw2ev[131075]], ev2raw[raw2ev[131076]], ev2raw[raw2ev[132000]]);
 }
 
-static inline double compute_noise(struct raw_info raw_info, uint16_t * image_data, double * noise_std, double * dark_noise, double * bright_noise, double * dark_noise_ev, double * bright_noise_ev)
+static inline double compute_noise20(struct raw_info raw_info, uint32_t * image_data, double * noise_std, double * dark_noise, double * bright_noise, double * dark_noise_ev, double * bright_noise_ev)
 {
+    // Fixme : We should use black bars to compute noise levels, but they are not present here
     double noise_avg = 0.0;
-#pragma omp parallel for schedule(static) num_threads(4) default(none) shared(raw_info, image_data, noise_avg, noise_std)
     for (int y = 0; y < 4; y++)
-        compute_black_noise(raw_info, image_data, raw_info.active_area.x1 + 8, raw_info.active_area.x2 - 8, raw_info.active_area.y1/4*4 + 20 + y, raw_info.active_area.y2 - 20, 1, 4, &noise_avg, &noise_std[y]);
+        compute_black_noise20(raw_info, image_data, raw_info.active_area.y1/4*4 + 20 + y, raw_info.active_area.y2 - 20, 1, 4, &noise_avg, &noise_std[y]);
+
 #ifndef STDOUT_SILENT
     printf("Noise levels    : %.02f %.02f %.02f %.02f (14-bit)\n", noise_std[0], noise_std[1], noise_std[2], noise_std[3]);
 #endif
+
     *dark_noise = MIN(MIN(noise_std[0], noise_std[1]), MIN(noise_std[2], noise_std[3]));
     *bright_noise = MAX(MAX(noise_std[0], noise_std[1]), MAX(noise_std[2], noise_std[3]));
     *dark_noise_ev = log2(*dark_noise);
@@ -2571,26 +2582,30 @@ int diso_get_full20bit(struct raw_info raw_info,dual_iso_freeze_data_t* iso_data
 #ifdef PERF_INFO
     perf_clock = clock();
 #endif
+
     white_detect(raw_info, image_data, &white, &white_bright, is_bright);
-//    white = 16383;
-//    white_bright = 14880;
+    white *= 64;
+    white_bright *= 64;
+    raw_info.white_level = white;
 
 #ifdef PERF_INFO
     perf_clock = clock()-perf_clock;
     printf("white_detect took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
     fflush(stdout);
 #endif
-    white *= 64;
-    white_bright *= 64;
-    raw_info.white_level = white;
 
+    uint32_t * raw_buffer_32 = convert_to_20bit(raw_info, image_data);
     double noise_std[4];
     double dark_noise, bright_noise, dark_noise_ev, bright_noise_ev;
+
 #ifdef PERF_INFO
     perf_clock = clock();
 #endif
-    double noise_avg = compute_noise(raw_info, image_data, noise_std, &dark_noise, &bright_noise, &dark_noise_ev, &bright_noise_ev);
+
+    double noise_avg = compute_noise20(raw_info, raw_buffer_32, noise_std, &dark_noise, &bright_noise, &dark_noise_ev, &bright_noise_ev);
+
 #ifdef PERF_INFO
+
     perf_clock = clock()-perf_clock;
     printf("compute_noise took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
     fflush(stdout);
@@ -2599,18 +2614,12 @@ int diso_get_full20bit(struct raw_info raw_info,dual_iso_freeze_data_t* iso_data
     perf_clock = clock();
 #endif
     /* promote from 14 to 20 bits (original raw buffer holds 14-bit values stored as uint16_t) */
-    uint32_t * raw_buffer_32 = convert_to_20bit(raw_info, image_data);
 
 #ifdef PERF_INFO
     perf_clock = clock()-perf_clock;
     printf("convert_to_20bit took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
     fflush(stdout);
 #endif
-    /* we have now switched to 20-bit, update noise numbers */
-    dark_noise *= 64;
-    bright_noise *= 64;
-    dark_noise_ev += 6;
-    bright_noise_ev += 6;
 
 #ifdef PERF_INFO
     perf_clock = clock();
@@ -2642,31 +2651,6 @@ int diso_get_full20bit(struct raw_info raw_info,dual_iso_freeze_data_t* iso_data
         memset(alias_map, 0, w * h * sizeof(uint16_t));
     }
     
-    /* fullres mixing curve */
-    static double fullres_curve[1<<20];
-#ifdef PERF_INFO
-    perf_clock = clock()-perf_clock;
-    printf("allocate memory took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
-    fflush(stdout);
-#endif
-
-#ifdef PERF_INFO
-    perf_clock = clock();
-#endif
-    for (int i = 0; i < (1<<20); i++)
-    {
-        double ev2 = log2(MAX(i/64.0 - black/64.0, 1));
-        double c2 = -cos(COERCE(ev2 - fullres_start, 0, fullres_transition)*M_PI/fullres_transition);
-        double f = (c2+1) / 2;
-        fullres_curve[i] = f;
-    }
-#ifdef PERF_INFO
-    perf_clock = clock()-perf_clock;
-    printf("fullres curve initialization took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
-    fflush(stdout);
-#endif
-
-    //~ printf("Exposure matching...\n");
     /* estimate ISO difference between bright and dark exposures */
     double corr_ev = 0;
     int white_darkened = white_bright;
@@ -2696,7 +2680,7 @@ int diso_get_full20bit(struct raw_info raw_info,dual_iso_freeze_data_t* iso_data
     double lowiso_dr = log2(white - black) - dark_noise_ev;
 #ifndef STDOUT_SILENT
     double highiso_dr = log2(white_bright - black) - bright_noise_ev;
-    printf("Dynamic range   : %.02f (+) %.02f => %.02f EV (in theory)\n", lowiso_dr, highiso_dr, highiso_dr + corr_ev);
+    printf("Dynamic range   : %.02f (+) %.02f => %.02f EV (@14 bits, in theory)\n", lowiso_dr-6, highiso_dr-6, highiso_dr + corr_ev-6);
 #endif
     /* correction factor for the bright exposure, which was just darkened */
     double corr = pow(2, corr_ev);
@@ -2859,7 +2843,7 @@ int diso_get_full20bit(struct raw_info raw_info,dual_iso_freeze_data_t* iso_data
             for (int x = 2; x < w-2; x ++)
                 raw_set_pixel32(x, y, bright[x + y*w]);
 
-        compute_black_noise(raw_info, image_data, raw_info.active_area.x1 + 8, raw_info.active_area.x2 - 8, raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0]);
+        compute_black_noise20(raw_info, raw_buffer_32, raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0]);
 #ifdef PERF_INFO
     perf_clock = clock()-perf_clock;
     printf("compute_black_noise took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
@@ -2881,7 +2865,7 @@ int diso_get_full20bit(struct raw_info raw_info,dual_iso_freeze_data_t* iso_data
     perf_clock = clock();
 #endif
         /* let's see how much dynamic range we actually got */
-        compute_black_noise(raw_info, image_data, raw_info.active_area.x1 + 8, raw_info.active_area.x2 - 8, raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0]); 
+        compute_black_noise20(raw_info, raw_buffer_32, raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 1, 1, &noise_avg, &noise_std[0]); 
 #ifdef PERF_INFO
     perf_clock = clock()-perf_clock;
     printf("compute_black_noise took %f seconds\n", ((double) perf_clock) / CLOCKS_PER_SEC);
