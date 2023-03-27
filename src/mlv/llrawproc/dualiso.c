@@ -393,7 +393,7 @@ static void compute_black_noise20(struct raw_info raw_info, uint32_t * raw_buffe
     {
         mean = raw_info.black_level;
         /* default to 11 stops (14-log2(8)) of DR */
-        stdev = 8 + 6; 
+        stdev = 8 + 6;  // (+6 for 20bits res)
     }
     
     *out_mean = mean;
@@ -710,12 +710,13 @@ static void apply_correction(double a, double b, int h, int w, struct raw_info r
 #ifndef STDOUT_SILENT
         printf("Doesn't look like interlaced ISO\n");
 #endif
-        return 0;
+        return;
     }
     
     *corr_ev = log2(factor);
 #ifndef STDOUT_SILENT
     printf("ISO difference  : %.2f EV (%d) (a[%f] b[%f])\n", *corr_ev, (int)round(factor*100), a, b);
+    printf("Whites  :       : %d(darkened) %d\n", *white_darkened, white20);
     printf("Black delta     : %.2f\n", b/4); /* we want to display black delta for the 14-bit original data, but we have computed it from 16-bit data */
 #endif
 }
@@ -820,7 +821,7 @@ ENDLOOP:
     double a = 0;
     double b = 0;
 
-    int best_score = 0;
+    int best_score = INT32_MAX;
     //This loop updates "a" and "b" when the maximum score is updated. Needs to be rewritten to make it parallelizable
     for (double ev = 0; ev < 6; ev += 0.002)
     {
@@ -833,9 +834,9 @@ ENDLOOP:
             int d = hi_dark[i];
             int b = hi_bright[i];
             int e = d - (b*test_a + test_b);
-            if (ABS(e) < 50) score++;
+            score += ABS(e);
         }
-        if (score > best_score)
+        if (score < best_score)
         {
             best_score = score;
             a = test_a;
